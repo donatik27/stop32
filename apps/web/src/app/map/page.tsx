@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { Globe, RefreshCw, Users, Trophy, Target } from 'lucide-react'
 import { getTraderLocation } from '@/lib/trader-geolocation'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 
 // Dynamically import TraderGlobe (client-only)
 const TraderGlobe = dynamic(() => import('@/components/TraderGlobe'), {
@@ -51,9 +52,38 @@ export default function MapPage() {
   const [traders, setTraders] = useState<TraderMarker[]>([])
   const [loading, setLoading] = useState(true)
   const [hoveredTrader, setHoveredTrader] = useState<HoveredTrader | null>(null)
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     fetchData()
+  }, [])
+
+  // Handler with delay for trader hover
+  const handleTraderHover = (trader: HoveredTrader | null) => {
+    // Clear existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+
+    if (trader) {
+      // Immediately show new trader
+      setHoveredTrader(trader)
+    } else {
+      // Delay hiding the panel by 3 seconds
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredTrader(null)
+      }, 3000)
+    }
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
   }, [])
 
   const fetchData = async () => {
@@ -183,7 +213,10 @@ export default function MapPage() {
 
         {/* Hovered Trader Info - Top Right */}
         {hoveredTrader && (
-          <div className="absolute top-4 right-4 bg-black/95 pixel-border border-primary/50 p-4 z-30 pointer-events-none min-w-[200px]">
+          <Link 
+            href={`/traders/${hoveredTrader.address}`}
+            className="absolute top-4 right-4 bg-black/95 pixel-border border-primary/50 p-4 z-30 min-w-[200px] hover:bg-black hover:border-primary transition-all cursor-pointer"
+          >
             <div className="flex items-center gap-3 mb-2">
               <img 
                 src={hoveredTrader.profileImage} 
@@ -213,7 +246,7 @@ export default function MapPage() {
             <div className={`text-sm font-bold font-mono ${hoveredTrader.pnl >= 0 ? 'text-[#00ff00]' : 'text-red-500'}`}>
               PnL: {hoveredTrader.pnl >= 0 ? '+' : ''}{(hoveredTrader.pnl / 1000).toFixed(1)}K
             </div>
-          </div>
+          </Link>
         )}
         
         {/* Controls hint */}
@@ -239,7 +272,7 @@ export default function MapPage() {
               pnl: m.trader.estimatedPnL,
               profileImage: m.trader.avatar,
             }))}
-            onTraderHover={(trader) => setHoveredTrader(trader)}
+            onTraderHover={handleTraderHover}
           />
         </Suspense>
       </div>
