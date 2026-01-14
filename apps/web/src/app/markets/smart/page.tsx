@@ -64,7 +64,7 @@ export default function SmartMarketsPage() {
           <button
             onClick={fetchSmartMarkets}
             disabled={loading}
-            className="px-6 py-3 bg-primary text-black font-bold hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-3 text-sm uppercase tracking-wider"
+            className="px-6 py-3 bg-primary text-black font-bold pixel-border hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-3 text-sm uppercase tracking-wider"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'ANALYZING...' : 'REFRESH'}
@@ -79,26 +79,26 @@ export default function SmartMarketsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">🧠</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Smart_Markets</p>
           <p className="text-3xl font-bold text-white relative z-10">{markets.length}</p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">👥</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Avg_S/A_Count</p>
           <p className="text-3xl font-bold text-primary relative z-10">
             {markets.length > 0 ? (markets.reduce((a, b) => a + b.smartCount, 0) / markets.length).toFixed(1) : 0}
           </p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">💰</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Total_Volume</p>
           <p className="text-3xl font-bold text-white relative z-10">
             ${(markets.reduce((a, b) => a + b.volume, 0) / 1000000).toFixed(1)}M
           </p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">⚡</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Avg_Score</p>
           <p className="text-3xl font-bold text-primary relative z-10">
@@ -112,7 +112,7 @@ export default function SmartMarketsPage() {
         {markets.map((market, idx) => (
           <div 
             key={market.marketId}
-            className="bg-card  p-6  transition-all group relative overflow-hidden"
+            className="bg-card pixel-border border-primary/30 p-6 hover:border-primary transition-all group relative overflow-hidden"
           >
             {/* Rank badge */}
             <div className="absolute top-3 left-3">
@@ -140,19 +140,19 @@ export default function SmartMarketsPage() {
 
               {/* Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-black/40  p-3">
+                <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">S/A_TRADERS</p>
                   <p className="text-xl font-bold text-white">{market.smartCount}</p>
                 </div>
-                <div className="bg-black/40  p-3">
+                <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">VOLUME</p>
                   <p className="text-xl font-bold text-primary">${(market.volume / 1000).toFixed(0)}k</p>
                 </div>
-                <div className="bg-black/40  p-3">
+                <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">LIQUIDITY</p>
                   <p className="text-xl font-bold text-white">${(market.liquidity / 1000).toFixed(0)}k</p>
                 </div>
-                <div className="bg-black/40  p-3">
+                <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">CATEGORY</p>
                   <p className="text-sm font-bold text-white truncate">{market.category}</p>
                 </div>
@@ -162,7 +162,7 @@ export default function SmartMarketsPage() {
               {market.topTraders && market.topTraders.length > 0 && (
                 <>
                   {/* Tier composition stats */}
-                  <div className="bg-black/40  p-4 mb-3">
+                  <div className="bg-black/40 pixel-border border-primary/30 p-4 mb-3">
                     <p className="text-xs font-mono text-primary mb-3 uppercase tracking-wider">
                       📊 TIER_COMPOSITION (S=5pts, A=3pts, B=2pts, C=1pt):
                     </p>
@@ -173,7 +173,7 @@ export default function SmartMarketsPage() {
                         if (count === 0) return null
                         return (
                           <div key={tier} className="flex items-center gap-2">
-                            <span className={`px-2 py-1 text-sm font-bold ${
+                            <span className={`px-2 py-1 text-sm font-bold pixel-border ${
                               tier === 'S' ? 'bg-[#FFD700] text-black' :
                               tier === 'A' ? 'bg-white text-black' :
                               tier === 'B' ? 'bg-primary text-black' :
@@ -191,7 +191,7 @@ export default function SmartMarketsPage() {
                   </div>
 
                   {/* All Smart Traders */}
-                  <div className="bg-black/40  p-4">
+                  <div className="bg-black/40 pixel-border border-primary/30 p-4">
                     <p className="text-xs font-mono text-primary mb-3 uppercase tracking-wider">
                       👽 ALL_SMART_TRADERS_IN_MARKET ({market.topTraders.length}):
                     </p>
@@ -199,12 +199,12 @@ export default function SmartMarketsPage() {
                       {market.topTraders.map((trader: any) => (
                         <div 
                           key={trader.address}
-                          className="flex items-center gap-2 bg-black  p-2 hover: transition-all"
+                          className="flex items-center gap-2 bg-black pixel-border border-white/30 p-2 hover:border-primary transition-all"
                         >
-                          <span className={`px-2 py-0.5 text-xs font-bold ${
-                            trader.tier === 'S' ? 'bg-[#FFD700] text-black ' :
-                            trader.tier === 'A' ? 'bg-white text-black  :
-                            trader.tier === 'B' ? 'bg-primary text-black  :
+                          <span className={`px-2 py-0.5 text-xs font-bold pixel-border ${
+                            trader.tier === 'S' ? 'bg-[#FFD700] text-black border-[#FFD700]' :
+                            trader.tier === 'A' ? 'bg-white text-black border-white' :
+                            trader.tier === 'B' ? 'bg-primary text-black border-primary' :
                             'bg-gray-400 text-black border-gray-400'
                           }`}>
                             {trader.tier}
@@ -241,7 +241,7 @@ export default function SmartMarketsPage() {
 
       {/* Empty state */}
       {!loading && markets.length === 0 && (
-        <div className="text-center py-20 bg-card  p-12">
+        <div className="text-center py-20 bg-card pixel-border border-primary/30 p-12">
           <div className="text-6xl mb-4">🛸</div>
           <p className="text-xl font-bold text-primary mb-2">NO_SMART_MARKETS_DETECTED</p>
           <p className="text-muted-foreground font-mono">Try refreshing or check back later</p>

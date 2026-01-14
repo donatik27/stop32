@@ -29,7 +29,7 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 bg-black border-r-2  flex flex-col relative overflow-hidden">
+    <div className="w-64 bg-black flex flex-col relative overflow-hidden">
       {/* Cosmic background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-10 left-5 w-1 h-1 bg-primary animate-pulse"></div>
@@ -37,7 +37,7 @@ export function Sidebar() {
         <div className="absolute top-48 left-12 w-1 h-1 bg-primary animate-pulse" style={{animationDelay: '1s'}}></div>
       </div>
       
-      <div className="p-6 border-b-2  relative z-10">
+      <div className="p-6 relative z-10">
         <div className="flex items-center gap-3 mb-2">
           <div className="text-3xl">🛸</div>
           <div>
@@ -57,10 +57,10 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-4 py-3 mb-2 transition-all group font-bold uppercase text-xs tracking-wider pixel-border',
+                'flex items-center gap-3 px-4 py-3 mb-2 transition-all group font-bold uppercase text-xs tracking-wider',
                 isActive 
-                  ? 'bg-primary text-black  alien-glow' 
-                  : 'text-white  hover: hover:text-primary hover:bg-primary/5'
+                  ? 'bg-primary text-black alien-glow' 
+                  : 'text-white hover:text-primary hover:bg-primary/5'
               )}
             >
               <item.icon className={cn(
@@ -73,8 +73,8 @@ export function Sidebar() {
         })}
       </nav>
       
-      <div className="p-4 border-t-2  relative z-10">
-        <div className="bg-black  p-3 relative overflow-hidden">
+      <div className="p-4 relative z-10">
+        <div className="bg-black p-3 relative overflow-hidden">
           <div className="absolute top-0 right-0 text-2xl opacity-20">👽</div>
           <p className="text-xs font-bold text-primary mb-1 uppercase tracking-wider">System Status</p>
           <p className="text-xs text-white font-mono">PHASE_0 [ACTIVE] ✓</p>

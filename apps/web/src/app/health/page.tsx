@@ -4,7 +4,7 @@ export default function HealthPage() {
       <h1 className="text-3xl font-bold mb-6">System Health</h1>
       
       <div className="grid gap-6">
-        <div className="bg-card rounded-lg p-6">
+        <div className="bg-card rounded-lg border p-6">
           <h2 className="text-xl font-semibold mb-4">System Status</h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -22,7 +22,7 @@ export default function HealthPage() {
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-6">
+        <div className="bg-card rounded-lg border p-6">
           <h2 className="text-xl font-semibold mb-4">Ingestion Status</h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -40,7 +40,7 @@ export default function HealthPage() {
           </div>
         </div>
 
-        <div className="bg-card rounded-lg p-6">
+        <div className="bg-card rounded-lg border p-6">
           <h2 className="text-xl font-semibold mb-4">Worker Stats</h2>
           <p className="text-muted-foreground">Worker metrics will appear here when jobs are running.</p>
         </div>

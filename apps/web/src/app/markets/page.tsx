@@ -99,7 +99,7 @@ export default function MarketsPage() {
           <button
             onClick={fetchMarkets}
             disabled={loading}
-            className="px-6 py-3 bg-primary text-black font-bold hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-3 text-sm uppercase tracking-wider"
+            className="px-6 py-3 bg-primary text-black font-bold pixel-border hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-3 text-sm uppercase tracking-wider"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'SCANNING...' : 'REFRESH'}
@@ -114,24 +114,24 @@ export default function MarketsPage() {
 
       {/* Stats - Alien Data Pods */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">🎲</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Total_Markets</p>
           <p className="text-3xl font-bold text-white relative z-10">{markets.length}</p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">💰</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Total_Volume</p>
           <p className="text-3xl font-bold text-primary relative z-10">
             ${(markets.reduce((a, b) => a + b.volume, 0) / 1000000).toFixed(1)}M
           </p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">📊</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Current_Page</p>
           <p className="text-3xl font-bold text-white relative z-10">{currentPage} / {totalPages}</p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">💎</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Avg_Liquidity</p>
           <p className="text-3xl font-bold text-white relative z-10">
@@ -141,11 +141,11 @@ export default function MarketsPage() {
       </div>
 
       {/* Table - Alien Database */}
-      <div className="bg-card  overflow-hidden relative">
+      <div className="bg-card pixel-border border-primary/30 overflow-hidden relative">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse"></div>
         <div className="overflow-x-auto">
           <table className="w-full table-fixed">
-            <thead className="bg-black/60 border-b-2 
+            <thead className="bg-black/60 border-b-2 border-primary/50">
               <tr className="font-mono">
                 <th className="text-left p-3 text-xs font-bold text-primary uppercase tracking-wider w-16">Rank</th>
                 <th className="text-left p-3 text-xs font-bold text-primary uppercase tracking-wider">Question</th>
@@ -159,7 +159,7 @@ export default function MarketsPage() {
               {currentMarkets.map((market, idx) => (
                 <tr 
                   key={market.id}
-                  className="border-t  hover:bg-primary/5 hover: transition-all group"
+                  className="border-t border-white/10 hover:bg-primary/5 hover:border-primary/50 transition-all group"
                 >
                   <td className="p-3 text-primary font-bold font-mono text-sm group-hover:text-white transition-colors">
                     #{String(startIndex + idx + 1).padStart(3, '0')}
@@ -178,7 +178,7 @@ export default function MarketsPage() {
                     </div>
                   </td>
                   <td className="p-3">
-                    <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-mono 
+                    <span className="px-2 py-1 bg-primary/20 text-primary text-xs font-mono pixel-border border-primary/50">
                       {market.category}
                     </span>
                   </td>
@@ -209,7 +209,7 @@ export default function MarketsPage() {
 
       {/* Pagination - Alien Navigation */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 p-4 bg-card 
+        <div className="flex items-center justify-between mt-6 p-4 bg-card pixel-border border-primary/30">
           <div className="text-sm font-mono text-primary flex items-center gap-2">
             <span className="animate-pulse">◆</span>
             SECTOR_{currentPage} / {totalPages}
@@ -219,14 +219,14 @@ export default function MarketsPage() {
             <button
               onClick={() => goToPage(1)}
               disabled={currentPage === 1}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
             >
               ««
             </button>
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
             >
               ← PREV
             </button>
@@ -249,10 +249,10 @@ export default function MarketsPage() {
                   <button
                     key={pageNum}
                     onClick={() => goToPage(pageNum)}
-                    className={`px-4 py-2 text-sm font-bold font-mono transition-all ${
+                    className={`px-4 py-2 pixel-border text-sm font-bold font-mono transition-all ${
                       currentPage === pageNum
-                        ? 'bg-primary text-black 
-                        : 'bg-transparent text-white  hover: hover:text-primary'
+                        ? 'bg-primary text-black border-primary'
+                        : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
                     }`}
                   >
                     {String(pageNum).padStart(2, '0')}
@@ -264,14 +264,14 @@ export default function MarketsPage() {
             <button
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
             >
               NEXT →
             </button>
             <button
               onClick={() => goToPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
             >
               »»
             </button>

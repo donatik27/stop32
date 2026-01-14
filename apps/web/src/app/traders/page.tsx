@@ -20,9 +20,9 @@ interface Trader {
 }
 
 const tierColors: Record<string, string> = {
-  S: 'bg-[#FFD700]/20 text-[#FFD700] /50',
-  A: 'bg-white/20 text-white 
-  B: 'bg-primary/20 text-primary 
+  S: 'bg-[#FFD700]/20 text-[#FFD700] border-[#FFD700]/50',
+  A: 'bg-white/20 text-white border-white/50',
+  B: 'bg-primary/20 text-primary border-primary/50',
   C: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   D: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
   E: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
@@ -112,7 +112,7 @@ export default function TradersPage() {
           <button
             onClick={fetchTraders}
             disabled={loading}
-            className="px-6 py-3 bg-primary text-black font-bold hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-3 text-sm uppercase tracking-wider"
+            className="px-6 py-3 bg-primary text-black font-bold pixel-border hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-3 text-sm uppercase tracking-wider"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'SCANNING...' : 'REFRESH'}
@@ -126,7 +126,7 @@ export default function TradersPage() {
       </div>
 
       {/* Period Badge - Pixel Style */}
-      <div className="bg-card  p-4 mb-6 relative overflow-hidden">
+      <div className="bg-card pixel-border border-primary/30 p-4 mb-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-full blur-xl"></div>
         <div className="flex items-center gap-3 relative z-10">
           <span className="text-primary text-xl">📅</span>
@@ -139,7 +139,7 @@ export default function TradersPage() {
       </div>
 
       {/* Filters - Alien Command Center */}
-      <div className="bg-card  p-5 mb-6 flex flex-wrap gap-4 items-center relative">
+      <div className="bg-card pixel-border border-white/20 p-5 mb-6 flex flex-wrap gap-4 items-center relative">
         <div className="absolute top-2 right-2 text-primary text-xs font-mono animate-pulse">FILTERS.SYS</div>
         <div className="flex items-center gap-3">
           <span className="text-sm font-mono text-primary">TIER_FILTER:</span>
@@ -148,10 +148,10 @@ export default function TradersPage() {
               <button
                 key={tier}
                 onClick={() => setFilterTier(tier)}
-                className={`px-3 py-1 text-sm font-bold uppercase transition-all ${
+                className={`px-3 py-1 text-sm font-bold uppercase transition-all pixel-border ${
                   filterTier === tier
-                    ? 'bg-primary text-black 
-                    : 'bg-transparent text-white  hover: hover:text-primary'
+                    ? 'bg-primary text-black border-primary'
+                    : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
                 }`}
               >
                 {tier === 'all' ? 'ALL' : tier}
@@ -166,24 +166,24 @@ export default function TradersPage() {
           <span className="text-sm font-mono text-primary">SORT_BY:</span>
           <button
             onClick={() => setSortBy('pnl')}
-            className={`px-3 py-1 text-sm flex items-center gap-2 font-bold uppercase transition-all ${
-              sortBy === 'pnl' ? 'bg-primary text-black  : 'bg-transparent text-white   hover:text-primary'
+            className={`px-3 py-1 text-sm flex items-center gap-2 font-bold uppercase pixel-border transition-all ${
+              sortBy === 'pnl' ? 'bg-primary text-black border-primary' : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
             }`}
           >
             PNL <ArrowUpDown className="h-3 w-3" />
           </button>
           <button
             onClick={() => setSortBy('winRate')}
-            className={`px-3 py-1 text-sm flex items-center gap-2 font-bold uppercase transition-all ${
-              sortBy === 'winRate' ? 'bg-primary text-black  : 'bg-transparent text-white   hover:text-primary'
+            className={`px-3 py-1 text-sm flex items-center gap-2 font-bold uppercase pixel-border transition-all ${
+              sortBy === 'winRate' ? 'bg-primary text-black border-primary' : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
             }`}
           >
             WIN_RATE <ArrowUpDown className="h-3 w-3" />
           </button>
           <button
             onClick={() => setSortBy('trades')}
-            className={`px-3 py-1 text-sm flex items-center gap-2 font-bold uppercase transition-all ${
-              sortBy === 'trades' ? 'bg-primary text-black  : 'bg-transparent text-white   hover:text-primary'
+            className={`px-3 py-1 text-sm flex items-center gap-2 font-bold uppercase pixel-border transition-all ${
+              sortBy === 'trades' ? 'bg-primary text-black border-primary' : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
             }`}
           >
             TRADES <ArrowUpDown className="h-3 w-3" />
@@ -193,22 +193,22 @@ export default function TradersPage() {
 
       {/* Stats - Alien Data Pods */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">🛸</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Total_Entities</p>
           <p className="text-3xl font-bold text-white relative z-10">{totalTraders}</p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">📡</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Current_Sector</p>
           <p className="text-3xl font-bold text-white relative z-10">{currentPage} / {totalPages}</p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">👾</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Displaying</p>
           <p className="text-3xl font-bold text-white relative z-10">{startIndex + 1}-{Math.min(endIndex, filteredTraders.length)}</p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden group  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden group hover:border-primary transition-all">
           <div className="absolute top-0 right-0 text-4xl opacity-10">⚡</div>
           <p className="text-xs font-mono text-primary mb-2 uppercase tracking-wider">Avg_Success</p>
           <p className="text-3xl font-bold text-primary relative z-10">
@@ -218,11 +218,11 @@ export default function TradersPage() {
       </div>
 
       {/* Table - Alien Database */}
-      <div className="bg-card  overflow-hidden relative">
+      <div className="bg-card pixel-border border-primary/30 overflow-hidden relative">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse"></div>
         <div className="overflow-x-auto">
           <table className="w-full table-fixed">
-            <thead className="bg-black/60 border-b-2 
+            <thead className="bg-black/60 border-b-2 border-primary/50">
               <tr className="font-mono">
                 <th className="text-left p-3 text-xs font-bold text-primary uppercase tracking-wider w-20">Rank</th>
                 <th className="text-left p-3 text-xs font-bold text-primary uppercase tracking-wider w-48">Entity_ID</th>
@@ -237,7 +237,7 @@ export default function TradersPage() {
               {currentTraders.map((trader, idx) => (
                 <tr 
                   key={trader.address}
-                  className="border-t  hover:bg-primary/5 hover: transition-all group"
+                  className="border-t border-white/10 hover:bg-primary/5 hover:border-primary/50 transition-all group"
                 >
                   <td className="p-3 text-primary font-bold font-mono text-sm group-hover:text-white transition-colors">
                     #{String(startIndex + idx + 1).padStart(3, '0')}
@@ -248,13 +248,13 @@ export default function TradersPage() {
                         <img 
                           src={trader.avatar} 
                           alt={trader.displayName}
-                          className="w-10 h-10   bg-black object-cover group- transition-all"
+                          className="w-10 h-10 border-2 border-primary/50 bg-black object-cover group-hover:border-primary transition-all"
                           style={{imageRendering: 'pixelated'}}
                           onError={(e) => {
                             e.currentTarget.src = 'https://api.dicebear.com/7.x/shapes/svg?seed=default'
                           }}
                         />
-                        <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-primary 
+                        <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-primary border border-black"></div>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
@@ -268,7 +268,7 @@ export default function TradersPage() {
                             <span className="text-primary text-xs flex-shrink-0" title="Verified">✓</span>
                           )}
                           {trader.xUsername && trader.xUsername.trim() !== '' && (
-                            <span className="text-primary text-xs px-1 flex-shrink-0" title={`Twitter: @${trader.xUsername}`}>
+                            <span className="text-primary text-xs pixel-border px-1 flex-shrink-0" title={`Twitter: @${trader.xUsername}`}>
                               X
                             </span>
                           )}
@@ -287,11 +287,11 @@ export default function TradersPage() {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
-                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-bold ${
-                        trader.tier === 'S' ? 'bg-[#FFD700] text-black  gold-glow' :
-                        trader.tier === 'A' ? 'bg-white text-black  :
-                        trader.tier === 'B' ? 'bg-transparent text-primary  :
-                        'bg-transparent text-white 
+                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-bold pixel-border ${
+                        trader.tier === 'S' ? 'bg-[#FFD700] text-black border-[#FFD700] gold-glow' :
+                        trader.tier === 'A' ? 'bg-white text-black border-white' :
+                        trader.tier === 'B' ? 'bg-transparent text-primary border-primary' :
+                        'bg-transparent text-white border-white/50'
                       }`}>
                         {trader.tier}
                       </span>
@@ -334,7 +334,7 @@ export default function TradersPage() {
 
       {/* Pagination - Alien Navigation */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 p-4 bg-card 
+        <div className="flex items-center justify-between mt-6 p-4 bg-card pixel-border border-primary/30">
           <div className="text-sm font-mono text-primary flex items-center gap-2">
             <span className="animate-pulse">◆</span>
             SECTOR_{currentPage} / {totalPages}
@@ -344,14 +344,14 @@ export default function TradersPage() {
             <button
               onClick={() => goToPage(1)}
               disabled={currentPage === 1}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
             >
               ««
             </button>
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
             >
               ← PREV
             </button>
@@ -374,10 +374,10 @@ export default function TradersPage() {
                   <button
                     key={pageNum}
                     onClick={() => goToPage(pageNum)}
-                    className={`px-4 py-2 text-sm font-bold font-mono transition-all ${
+                    className={`px-4 py-2 pixel-border text-sm font-bold font-mono transition-all ${
                       currentPage === pageNum
-                        ? 'bg-primary text-black 
-                        : 'bg-transparent text-white  hover: hover:text-primary'
+                        ? 'bg-primary text-black border-primary'
+                        : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
                     }`}
                   >
                     {String(pageNum).padStart(2, '0')}
@@ -389,14 +389,14 @@ export default function TradersPage() {
             <button
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold uppercase transition-all"
             >
               NEXT →
             </button>
             <button
               onClick={() => goToPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="px-4 py-2  hover: hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
+              className="px-4 py-2 pixel-border border-white/30 hover:border-primary hover:text-primary bg-transparent disabled:opacity-30 disabled:cursor-not-allowed text-sm font-bold transition-all"
             >
               »»
             </button>

@@ -97,7 +97,7 @@ export default function MapPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto font-mono text-white">
       {/* Header */}
-      <div className="mb-6 border-b-2  pb-4">
+      <div className="mb-6 border-b-2 border-primary/50 pb-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -112,7 +112,7 @@ export default function MapPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="px-4 py-2 bg-primary text-black rounded-sm hover:bg-primary/80 transition-colors disabled:opacity-50 flex items-center gap-2   alien-glow"
+            className="px-4 py-2 bg-primary text-black rounded-sm hover:bg-primary/80 transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-primary alien-glow"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             REFRESH
@@ -122,28 +122,28 @@ export default function MapPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-card  p-4 relative overflow-hidden">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 text-4xl opacity-10">👥</div>
           <p className="text-xs font-mono text-primary mb-1 uppercase tracking-wider">Mapped_Traders</p>
           <p className="text-2xl font-bold text-white relative z-10">
             {loading ? '...' : traders.length}
           </p>
         </div>
-        <div className="bg-card /40 p-4 relative overflow-hidden">
+        <div className="bg-card pixel-border border-[#FFD700]/40 p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 text-4xl opacity-10">🏆</div>
           <p className="text-xs font-mono text-[#FFD700] mb-1 uppercase tracking-wider">S_Tier</p>
           <p className="text-2xl font-bold text-[#FFD700] relative z-10">
             {loading ? '...' : traders.filter(t => t.trader.tier === 'S').length}
           </p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden">
+        <div className="bg-card pixel-border border-white/40 p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 text-4xl opacity-10">⭐</div>
           <p className="text-xs font-mono text-white mb-1 uppercase tracking-wider">A_Tier</p>
           <p className="text-2xl font-bold text-white relative z-10">
             {loading ? '...' : traders.filter(t => t.trader.tier === 'A').length}
           </p>
         </div>
-        <div className="bg-card  p-4 relative overflow-hidden">
+        <div className="bg-card pixel-border border-primary/40 p-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 text-4xl opacity-10">🎯</div>
           <p className="text-xs font-mono text-primary mb-1 uppercase tracking-wider">B_Tier</p>
           <p className="text-2xl font-bold text-primary relative z-10">
@@ -153,9 +153,9 @@ export default function MapPage() {
       </div>
 
       {/* 3D Earth Globe with Three.js */}
-      <div className="bg-black  relative overflow-hidden mb-6 h-[600px]">
+      <div className="bg-black pixel-border border-primary/40 relative overflow-hidden mb-6 h-[600px]">
         {/* Info overlay */}
-        <div className="absolute top-4 left-4 bg-black/90  p-3 z-20 pointer-events-none">
+        <div className="absolute top-4 left-4 bg-black/90 pixel-border border-primary/50 p-3 z-20 pointer-events-none">
           <p className="text-primary font-mono text-xs mb-1">&gt; THREE.JS_GLOBE.3D</p>
           <p className="text-white text-sm font-bold">{traders.length} TRADERS MAPPED</p>
           <div className="flex gap-2 mt-2 text-xs">
@@ -166,7 +166,7 @@ export default function MapPage() {
         </div>
         
         {/* Controls hint */}
-        <div className="absolute bottom-4 right-4 bg-black/90  p-2 z-20 pointer-events-none">
+        <div className="absolute bottom-4 right-4 bg-black/90 pixel-border border-primary/50 p-2 z-20 pointer-events-none">
           <p className="text-muted-foreground font-mono text-xs">
             &gt; DRAG_TO_ROTATE • SCROLL_TO_ZOOM
           </p>
@@ -194,7 +194,7 @@ export default function MapPage() {
       {/* Trader List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* By Region */}
-        <div className="bg-card  p-6">
+        <div className="bg-card pixel-border border-primary/40 p-6">
           <h2 className="text-lg font-bold text-primary mb-4">
             &gt; TRADERS_BY_REGION:
           </h2>
@@ -207,7 +207,7 @@ export default function MapPage() {
             )
             .sort((a, b) => b[1] - a[1])
             .map(([region, count]) => (
-              <div key={region} className="flex items-center justify-between p-2 bg-black/40 
+              <div key={region} className="flex items-center justify-between p-2 bg-black/40 pixel-border border-white/20">
                 <span className="text-sm text-white">{region}</span>
                 <span className="text-primary font-bold">{count}</span>
               </div>
@@ -216,7 +216,7 @@ export default function MapPage() {
         </div>
 
         {/* Top Traders */}
-        <div className="bg-card  p-6">
+        <div className="bg-card pixel-border border-primary/40 p-6">
           <h2 className="text-lg font-bold text-primary mb-4">
             &gt; TOP_MAPPED_TRADERS:
           </h2>
@@ -224,11 +224,11 @@ export default function MapPage() {
             {traders.slice(0, 10).map((marker) => (
               <div
                 key={marker.trader.address}
-                className="flex items-center justify-between p-2 bg-black/40  hover: transition-colors cursor-pointer"
+                className="flex items-center justify-between p-2 bg-black/40 pixel-border border-white/20 hover:border-primary transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className={`px-2 py-1 text-xs font-bold ${
+                    className={`px-2 py-1 text-xs font-bold pixel-border ${
                       marker.trader.tier === 'S'
                         ? 'bg-[#FFD700] text-black'
                         : marker.trader.tier === 'A'
@@ -250,7 +250,7 @@ export default function MapPage() {
       </div>
 
       {/* Legend */}
-      <div className="bg-card  p-6">
+      <div className="bg-card pixel-border border-primary/40 p-6">
         <h2 className="text-lg font-bold text-primary mb-4">
           &gt; HOW_IT_WORKS:
         </h2>

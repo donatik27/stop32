@@ -174,13 +174,13 @@ function TraderPin({
         >
           <div style={{
             backgroundColor: 'rgba(0,0,0,0.95)',
+            border: '0.5px solid #00ff00',
             padding: '0.5px 1px',
             fontSize: '2.5px',
             color: '#00ff00',
             fontWeight: 'bold',
             whiteSpace: 'nowrap',
-            lineHeight: '1.1',
-            boxShadow: '0 0 3px rgba(0, 255, 0, 0.3)'
+            lineHeight: '1.1'
           }}>
             {trader.tier}•{trader.displayName.length > 5 ? trader.displayName.slice(0, 5) + '..' : trader.displayName}
           </div>

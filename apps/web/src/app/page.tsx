@@ -115,7 +115,7 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Link 
           href="/traders"
-          className="group bg-card  p-6  transition-all hover:scale-105"
+          className="group bg-card pixel-border border-primary/40 p-6 hover:border-primary transition-all hover:scale-105"
         >
           <div className="flex items-center justify-between mb-3">
             <Users className="h-8 w-8 text-primary alien-glow" />
@@ -127,7 +127,7 @@ export default function HomePage() {
 
         <Link 
           href="/markets/smart"
-          className="group bg-card pixel- p-6 hover:border-purple-500 transition-all hover:scale-105"
+          className="group bg-card pixel-border border-purple-500/40 p-6 hover:border-purple-500 transition-all hover:scale-105"
         >
           <div className="flex items-center justify-between mb-3">
             <TrendingUp className="h-8 w-8 text-purple-400" />
@@ -139,7 +139,7 @@ export default function HomePage() {
 
         <Link 
           href="/markets"
-          className="group bg-card  p-6 hover:border-white transition-all hover:scale-105"
+          className="group bg-card pixel-border border-white/40 p-6 hover:border-white transition-all hover:scale-105"
         >
           <div className="flex items-center justify-between mb-3">
             <Store className="h-8 w-8 text-white" />
@@ -151,7 +151,7 @@ export default function HomePage() {
 
         <Link 
           href="/health"
-          className="group bg-card pixel- p-6 hover:border-orange-500 transition-all hover:scale-105"
+          className="group bg-card pixel-border border-orange-500/40 p-6 hover:border-orange-500 transition-all hover:scale-105"
         >
           <div className="flex items-center justify-between mb-3">
             <Activity className="h-8 w-8 text-orange-400" />
@@ -164,7 +164,7 @@ export default function HomePage() {
 
       {/* Stats Cards - WITHOUT Total Volume */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card  p-6  transition-all relative overflow-hidden">
+        <div className="bg-card pixel-border border-primary/40 p-6 hover:border-primary transition-all relative overflow-hidden">
           <div className="absolute top-0 right-0 text-6xl opacity-5">👥</div>
           <div className="flex items-center justify-between mb-2 relative z-10">
             <p className="text-xs font-mono text-primary uppercase tracking-wider">Total_Traders</p>
@@ -176,7 +176,7 @@ export default function HomePage() {
           <p className="text-xs text-muted-foreground font-mono">&gt; TRACKED_LIVE</p>
         </div>
 
-        <div className="bg-card /40 p-6 hover: transition-all relative overflow-hidden">
+        <div className="bg-card pixel-border border-[#FFD700]/40 p-6 hover:border-[#FFD700] transition-all relative overflow-hidden">
           <div className="absolute top-0 right-0 text-6xl opacity-5">🏆</div>
           <div className="flex items-center justify-between mb-2 relative z-10">
             <p className="text-xs font-mono text-[#FFD700] uppercase tracking-wider">S-Tier_Traders</p>
@@ -188,7 +188,7 @@ export default function HomePage() {
           <p className="text-xs text-muted-foreground font-mono">&gt; TOP_0.1%</p>
         </div>
 
-        <div className="bg-card pixel- p-6 hover:border-purple-500 transition-all relative overflow-hidden">
+        <div className="bg-card pixel-border border-purple-500/40 p-6 hover:border-purple-500 transition-all relative overflow-hidden">
           <div className="absolute top-0 right-0 text-6xl opacity-5">🎯</div>
           <div className="flex items-center justify-between mb-2 relative z-10">
             <p className="text-xs font-mono text-purple-400 uppercase tracking-wider">Smart_Markets</p>
@@ -204,7 +204,7 @@ export default function HomePage() {
       {/* Main Content Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top S-Tier Traders */}
-        <div className="bg-card  p-6  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-6 hover:border-primary transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-[#FFD700]" />
@@ -232,12 +232,12 @@ export default function HomePage() {
                 <Link
                   key={trader.address}
                   href={`/traders`}
-                  className="flex items-center gap-3 p-3 bg-black/40  hover: transition-all group"
+                  className="flex items-center gap-3 p-3 bg-black/40 pixel-border border-white/20 hover:border-[#FFD700] transition-all group"
                 >
                   <img
                     src={trader.avatar}
                     alt={trader.displayName}
-                    className="w-12 h-12 rounded-full bg-secondary object-cover "
+                    className="w-12 h-12 rounded-full bg-secondary object-cover pixel-border border-[#FFD700]"
                     onError={(e) => {
                       e.currentTarget.src = 'https://api.dicebear.com/7.x/shapes/svg?seed=default'
                     }}
@@ -263,7 +263,7 @@ export default function HomePage() {
         </div>
 
         {/* Top Smart Markets */}
-        <div className="bg-card  p-6  transition-all">
+        <div className="bg-card pixel-border border-primary/40 p-6 hover:border-primary transition-all">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-purple-400" />
@@ -291,10 +291,10 @@ export default function HomePage() {
                 <Link
                   key={market.marketId}
                   href={`/markets/smart`}
-                  className="block p-4 bg-black/40  hover:border-purple-500 transition-all group"
+                  className="block p-4 bg-black/40 pixel-border border-white/20 hover:border-purple-500 transition-all group"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="px-3 py-1 bg-purple-500 text-white text-xs font-bold flex-shrink-0">
+                    <span className="px-3 py-1 bg-purple-500 text-white text-xs font-bold pixel-border flex-shrink-0">
                       #{idx + 1}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -326,9 +326,9 @@ export default function HomePage() {
       </div>
 
       {/* Info Banner */}
-      <div className="mt-8 bg-card  p-6">
+      <div className="mt-8 bg-card pixel-border border-primary/40 p-6">
         <div className="flex items-start gap-4">
-          <div className="p-2 bg-primary/20 
+          <div className="p-2 bg-primary/20 pixel-border border-primary/50">
             <Sparkles className="h-6 w-6 text-primary alien-glow" />
           </div>
           <div>
@@ -339,7 +339,7 @@ export default function HomePage() {
             <div className="flex gap-3">
               <Link 
                 href="/health"
-                className="text-sm bg-primary/20 hover:bg-primary/30 px-4 py-2  transition-colors font-mono"
+                className="text-sm bg-primary/20 hover:bg-primary/30 px-4 py-2 pixel-border border-primary/50 transition-colors font-mono"
               >
                 CHECK_STATUS
               </Link>
@@ -347,7 +347,7 @@ export default function HomePage() {
                 href="https://docs.polymarket.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm bg-purple-500/20 hover:bg-purple-500/30 px-4 py-2 pixel- transition-colors font-mono"
+                className="text-sm bg-purple-500/20 hover:bg-purple-500/30 px-4 py-2 pixel-border border-purple-500/50 transition-colors font-mono"
               >
                 POLYMARKET_DOCS
               </a>

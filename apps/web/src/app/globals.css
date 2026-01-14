@@ -42,10 +42,6 @@
 }
  
 @layer base {
-  * {
-    @apply border-border;
-  }
-  
   body {
     @apply bg-background text-foreground;
     font-family: 'VT323', monospace;
@@ -120,10 +116,12 @@
     }
   }
   
-  /* Pixel border - NO visible borders, only subtle glow */
+  /* Pixel border */
   .pixel-border {
-    border: none;
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
+    border: 2px solid currentColor;
+    box-shadow: 
+      -2px -2px 0 rgba(255, 255, 255, 0.2),
+      2px 2px 0 rgba(0, 0, 0, 0.8);
   }
 }
 
