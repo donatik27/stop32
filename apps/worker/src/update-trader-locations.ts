@@ -288,7 +288,7 @@ async function updateTraderLocations() {
     // Get coordinates for this location
     const coordsFn = COORDINATES[location]
     if (!coordsFn) {
-      console.log(`   ⚠️  Unknown location: ${location} for ${username}`)
+      console.log(`   ⚠️  Unknown location: ${location} for ${twitterUsername}`)
       continue
     }
     

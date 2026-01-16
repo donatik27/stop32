@@ -13,7 +13,11 @@ export type JobType =
   | 'sync-trader-trades'
   | 'sync-trader-positions'
   | 'calculate-rarity-scores'
-  | 'calculate-smart-markets';
+  | 'calculate-smart-markets'
+  | 'analyze-multi-outcome'
+  | 'update-pinned-markets'
+  | 'discover-new-markets'
+  | 'refresh-pinned-selection';
 
 export interface JobData {
   type: JobType;
