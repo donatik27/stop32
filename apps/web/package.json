@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "postinstall": "cd ../../packages/database && prisma generate"
   },
   "dependencies": {
     "@polymarket/database": "workspace:*",
