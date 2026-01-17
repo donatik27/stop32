@@ -57,7 +57,7 @@ app.get('/api/traders-with-location', async (_req, res) => {
       orderBy: { rarityScore: 'desc' },
     });
 
-    const serializedTraders = traders.map((trader) => ({
+    const serializedTraders = traders.map((trader: any) => ({
       ...trader,
       totalPnl: Number(trader.totalPnl),
       latitude: trader.latitude,
@@ -96,7 +96,7 @@ app.get('/api/smart-markets', async (_req, res) => {
       },
     });
 
-    const enriched = stats.map((stat) => ({
+    const enriched = stats.map((stat: any) => ({
       marketId: stat.marketId,
       question: stat.market.question,
       category: stat.market.category || 'Uncategorized',
@@ -134,15 +134,13 @@ app.get('/api/smart-markets', async (_req, res) => {
 
 app.get('/api/markets', async (_req, res) => {
   try {
-    const response = await fetch('https://gamma-api.polymarket.com/markets?closed=false&limit=100', {
-      cache: 'no-cache',
-    });
+    const response = await fetch('https://gamma-api.polymarket.com/markets?closed=false&limit=100');
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any[];
     const sorted = data
       .map((m: any) => {
         let tokenIds: any[] = [];
@@ -343,7 +341,7 @@ app.get('/api/market-price', async (req, res) => {
       return res.status(404).json({ error: 'Market not found' });
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
     const result = {
       marketId,
       outcomes: data.outcomes ? JSON.parse(data.outcomes) : ['Yes', 'No'],
@@ -363,19 +361,15 @@ app.get('/api/event-by-market', async (req, res) => {
   }
 
   try {
-    const marketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`, {
-      cache: 'no-cache',
-    });
+    const marketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`);
     if (!marketRes.ok) {
       return res.json({ eventSlug: null });
     }
-    const market = await marketRes.json();
+    const market = (await marketRes.json()) as any;
 
-    const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=300', {
-      cache: 'no-cache',
-    });
+    const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=300');
     if (eventsRes.ok) {
-      const events = await eventsRes.json();
+      const events = (await eventsRes.json()) as any[];
       for (const event of events) {
         if (event.markets && Array.isArray(event.markets)) {
           const hasThisMarket = event.markets.some((m: any) => m.id === marketId);
@@ -395,11 +389,9 @@ app.get('/api/event-by-market', async (req, res) => {
         .replace(/-\d+-\d+-\d+.*$/i, '')
         .replace(/-+$/g, '');
 
-      const directRes = await fetch(`https://gamma-api.polymarket.com/events?slug=${cleanSlug}`, {
-        cache: 'no-cache',
-      });
+      const directRes = await fetch(`https://gamma-api.polymarket.com/events?slug=${cleanSlug}`);
       if (directRes.ok) {
-        const directEvents = await directRes.json();
+        const directEvents = (await directRes.json()) as any[];
         if (directEvents && directEvents.length > 0) {
           return res.json({ eventSlug: directEvents[0].slug });
         }
@@ -425,20 +417,16 @@ app.get('/api/redirect-market/:marketId', async (req, res) => {
       return res.redirect(`https://polymarket.com/event/${market.eventSlug}?via=01k`);
     }
 
-    const marketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`, {
-      cache: 'no-cache',
-    });
+    const marketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`);
     if (!marketRes.ok) {
       return res.redirect('https://polymarket.com?via=01k');
     }
 
-    const marketData = await marketRes.json();
-    const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=1000&closed=false', {
-      cache: 'no-cache',
-    });
+    const marketData = (await marketRes.json()) as any;
+    const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=1000&closed=false');
 
     if (eventsRes.ok) {
-      const events = await eventsRes.json();
+      const events = (await eventsRes.json()) as any[];
       const parentEvent = events.find((e: any) => {
         if (!e.markets || !Array.isArray(e.markets)) return false;
         return e.markets.some(
