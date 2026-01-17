@@ -38,7 +38,7 @@ export async function GET() {
     })
     
     // Convert Decimal to number for JSON
-    const serializedTraders = traders.map(trader => ({
+    const serializedTraders = traders.map((trader: (typeof traders)[number]) => ({
       ...trader,
       totalPnl: Number(trader.totalPnl),
       latitude: trader.latitude,
