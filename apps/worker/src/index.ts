@@ -37,7 +37,7 @@ async function main() {
   await queues.ingestion.add(
     'sync-map-traders-immediate',
     { type: 'sync-map-traders' },
-    { delay: 300000, priority: 2 } // 5 minutes delay (after leaderboard completes)
+    { delay: 30000, priority: 2 } // 30 seconds delay
   );
   
   logger.info('✅ Immediate jobs queued');
