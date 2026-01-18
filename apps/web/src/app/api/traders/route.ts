@@ -1,16 +1,11 @@
 import { NextResponse } from 'next/server'
+import { proxyGet } from '../_lib/proxy'
 
-export async function GET() {
-  try {
-    const { fetchLeaderboard, convertToTrader } = await import('@/lib/polymarket-api')
-    
-    // Fetch top 1000 monthly traders
-    const leaderboard = await fetchLeaderboard(1000, '1mo')
-    const traders = leaderboard.map(convertToTrader)
-    
-    return NextResponse.json(traders)
-  } catch (error) {
-    console.error('Failed to fetch traders:', error)
-    return NextResponse.json({ error: 'Failed to fetch traders' }, { status: 500 })
-  }
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: Request) {
+  const proxied = await proxyGet(request, '/api/traders')
+  if (proxied) return proxied
+  
+  return NextResponse.json({ error: 'API service not configured' }, { status: 503 })
 }
