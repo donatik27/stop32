@@ -42,47 +42,64 @@ function assignTier(trader: any, leaderboard: any[]) {
 }
 
 async function syncLeaderboard(payload: any) {
-  logger.info('🚀 Syncing leaderboard (top 1000 traders)...');
+  logger.info('🚀 Syncing leaderboard from MULTIPLE time periods...');
   
   try {
-    const allTraders: any[] = [];
-    const BATCH_SIZE = 100;
+    const traderMap = new Map<string, any>(); // address -> trader data
     
-    // Fetch top 1000 traders in batches
-    for (let offset = 0; offset < 1000; offset += BATCH_SIZE) {
-      logger.info(`📥 Fetching batch ${Math.floor(offset / BATCH_SIZE) + 1}/10 (offset: ${offset})...`);
+    // Fetch traders from different time periods to maximize coverage
+    const periods = [
+      { name: 'day', limit: 100 },
+      { name: 'week', limit: 500 },
+      { name: 'month', limit: 1000 },
+      { name: 'all', limit: 1000 },
+    ];
+    
+    for (const period of periods) {
+      logger.info(`📥 Fetching top ${period.limit} traders from ${period.name.toUpperCase()} leaderboard...`);
       
-      const res = await fetch(
-        `https://data-api.polymarket.com/v1/leaderboard?timePeriod=month&orderBy=PNL&limit=${BATCH_SIZE}&offset=${offset}`
-      );
+      const BATCH_SIZE = 100;
+      let periodTraders = 0;
       
-      if (!res.ok) {
-        logger.error({ status: res.status }, 'Polymarket API error');
-        break;
+      for (let offset = 0; offset < period.limit; offset += BATCH_SIZE) {
+        const res = await fetch(
+          `https://data-api.polymarket.com/v1/leaderboard?timePeriod=${period.name}&orderBy=PNL&limit=${BATCH_SIZE}&offset=${offset}`
+        );
+        
+        if (!res.ok) {
+          logger.error({ status: res.status, period: period.name }, 'Polymarket API error');
+          break;
+        }
+        
+        const batch = await res.json();
+        
+        if (batch.length === 0) {
+          logger.info(`   ⚠️  Reached end of ${period.name} leaderboard at ${periodTraders} traders`);
+          break;
+        }
+        
+        // Add to map (deduplicate by address)
+        for (const t of batch) {
+          if (t.proxyWallet && !traderMap.has(t.proxyWallet)) {
+            traderMap.set(t.proxyWallet, t);
+            periodTraders++;
+          }
+        }
+        
+        logger.info(`   ✓ Fetched ${batch.length} traders from ${period.name} (new: ${periodTraders}, total unique: ${traderMap.size})`);
+        
+        // Small pause to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      const batch = await res.json();
-      
-      if (batch.length === 0) {
-        logger.info(`⚠️  Reached end of leaderboard at ${allTraders.length} traders (expected 1000)`);
-        break;
-      }
-      
-      if (batch.length < BATCH_SIZE && offset + batch.length < 1000) {
-        logger.warn(`⚠️  Batch ${Math.floor(offset / BATCH_SIZE) + 1} returned ${batch.length} traders (expected ${BATCH_SIZE})`);
-      }
-      
-      allTraders.push(...batch);
-      logger.info(`   ✓ Fetched ${batch.length} traders (total: ${allTraders.length}/1000)`);
-      
-      // Small pause to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 500));
+      logger.info(`✅ ${period.name.toUpperCase()} complete: ${periodTraders} new traders (total unique: ${traderMap.size})`);
     }
     
+    const allTraders = Array.from(traderMap.values());
+    logger.info(`✅ Fetched ${allTraders.length} UNIQUE traders across all time periods`);
+    
     if (allTraders.length < 1000) {
-      logger.warn(`⚠️  Only fetched ${allTraders.length}/1000 traders from Polymarket API`);
-    } else {
-      logger.info(`✅ Fetched all ${allTraders.length} traders`);
+      logger.warn(`⚠️  Only fetched ${allTraders.length} unique traders (expected 1000+)`);
     }
     
     // Assign tiers and save to DB
