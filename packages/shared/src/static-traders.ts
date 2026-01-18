@@ -279,7 +279,7 @@ export const STATIC_MAPPED_TRADERS: MappedTrader[] = Object.entries(TRADER_LOCAT
   const cityOptions = COUNTRY_COORDS[data.country];
   
   if (!cityOptions || cityOptions.length === 0) {
-    console.warn(`No coordinates for ${data.country}`);
+    // Skip traders without coordinates (console.warn not available in Node.js without DOM lib)
     return null;
   }
   
