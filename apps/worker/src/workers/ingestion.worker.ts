@@ -10,6 +10,9 @@ export async function handleIngestionJob(data: JobData) {
     case 'sync-markets':
       await syncMarkets(data.payload);
       break;
+    case 'sync-map-traders':
+      await syncMapTraders(data.payload);
+      break;
     case 'sync-trader-trades':
       await syncTraderTrades(data.payload);
       break;
@@ -179,23 +182,23 @@ async function syncLeaderboard(payload: any) {
     }
     
     // Update ingestion state
-    await prisma.ingestionState.upsert({
-      where: {
-        source_key: {
-          source: 'leaderboard',
-          key: 'global',
-        },
-      },
-      create: {
+  await prisma.ingestionState.upsert({
+    where: {
+      source_key: {
         source: 'leaderboard',
         key: 'global',
-        lastTimestamp: new Date(),
       },
-      update: {
-        lastTimestamp: new Date(),
-      },
-    });
-    
+    },
+    create: {
+      source: 'leaderboard',
+      key: 'global',
+      lastTimestamp: new Date(),
+    },
+    update: {
+      lastTimestamp: new Date(),
+    },
+  });
+  
     logger.info(`✅ Leaderboard sync completed! Saved ${saved} traders`);
     
     // 🗺️ ONE-TIME: Add geolocation if not already done
@@ -409,23 +412,23 @@ async function syncMarkets(payload: any) {
     }
     
     // Update ingestion state
-    await prisma.ingestionState.upsert({
-      where: {
-        source_key: {
-          source: 'markets',
-          key: 'all',
-        },
-      },
-      create: {
+  await prisma.ingestionState.upsert({
+    where: {
+      source_key: {
         source: 'markets',
         key: 'all',
-        lastTimestamp: new Date(),
       },
-      update: {
-        lastTimestamp: new Date(),
-      },
-    });
-    
+    },
+    create: {
+      source: 'markets',
+      key: 'all',
+      lastTimestamp: new Date(),
+    },
+    update: {
+      lastTimestamp: new Date(),
+    },
+  });
+  
     logger.info(`✅ Markets sync completed! Saved ${saved} markets`);
   } catch (error: any) {
     logger.error({ error: error.message }, 'Markets sync failed');
@@ -443,4 +446,130 @@ async function syncTraderPositions(payload: any) {
   logger.info({ trader: payload?.traderId }, 'Syncing trader positions...');
   // TODO: Implement if needed for detailed trader profiles
   logger.info('Trader positions sync completed (stub)');
+}
+
+async function syncMapTraders(payload: any) {
+  logger.info('🗺️  Syncing map traders to database...');
+  
+  // Map traders Twitter usernames (from static-traders.ts)
+  const MAP_TRADERS_USERNAMES = [
+    '0xTactic', '0xTrinity', 'AbrahamKurland', 'AnjunPoly', 'AnselFang',
+    'BeneGesseritPM', 'Betwick1', 'BitalikWuterin', 'BrokieTrades', 'CUTNPASTE4',
+    'Cabronidus', 'CarOnPolymarket', 'ColeBartiromo', 'Domahhhh', 'Dyor_0x',
+    'Eltonma', 'EricZhu06', 'Ferzinhagianola', 'Foster', 'HanRiverVictim',
+    'HarveyMackinto2', 'IceFrosst', 'Impij25', 'IqDegen', 'JJo3999',
+    'Junk3383', 'LegenTrader86', 'MiSTkyGo', 'MrOziPM', 'ParkDae_gangnam',
+    'PatroclusPoly', 'SnoorrrasonPoly', 'UjxTCY7Z7ftjiNq', 'XPredicter', 'biancalianne418',
+    'bitcoinzhang1', 'cripes3', 'cynical_reason', 'debased_PM', 'denizz_poly',
+    'drewlivanos', 'dw8998', 'evan_semet', 'feverpromotions', 'fortaellinger',
+    'holy_moses7', 'hypsterlo', 'johnleftman', 'jongpatori', 'joselebetis2',
+    'love_u_4ever', 'one8tyfive', 'smdx_btc', 'tulipking', 'vacoolaaaa',
+    'videlake', 'wkmfa57',
+  ];
+  
+  try {
+    let found = 0;
+    let notFound = 0;
+    
+    // Search in multiple time periods to maximize coverage
+    const periods = ['day', 'week', 'month', 'all'];
+    
+    for (const username of MAP_TRADERS_USERNAMES) {
+      let traderFound = false;
+      
+      for (const period of periods) {
+        try {
+          // Search in Polymarket leaderboard for this username
+          const res = await fetch(
+            `https://data-api.polymarket.com/v1/leaderboard?timePeriod=${period}&orderBy=PNL&limit=2000`
+          );
+          
+          if (!res.ok) {
+            continue;
+          }
+          
+          const traders = await res.json();
+          
+          // Find trader by Twitter username (case-insensitive)
+          const trader = traders.find((t: any) => 
+            t.xUsername?.toLowerCase() === username.toLowerCase()
+          );
+          
+          if (trader && trader.proxyWallet) {
+            // Check if already in DB
+            const existing = await prisma.trader.findUnique({
+              where: { address: trader.proxyWallet },
+            });
+            
+            if (existing) {
+              logger.info(`   ✓ Trader @${username} already in DB (${trader.proxyWallet})`);
+              found++;
+              traderFound = true;
+              break;
+            }
+            
+            // Add to DB
+            const volume = trader.volume || 0;
+            const marketsTraded = trader.markets_traded || 0;
+            const winRate = marketsTraded > 0 && trader.pnl > 0 
+              ? Math.min(((trader.pnl / volume) * 100), 100)
+              : 0;
+            
+            await prisma.trader.upsert({
+              where: { address: trader.proxyWallet },
+              create: {
+                address: trader.proxyWallet,
+                displayName: trader.userName || `${trader.proxyWallet?.slice(0, 6)}...`,
+                profilePicture: trader.profileImage || null,
+                twitterUsername: trader.xUsername || null,
+                tier: assignTier(trader, []),
+                realizedPnl: trader.pnl || 0,
+                totalPnl: trader.pnl || 0,
+                volume: volume,
+                tradeCount: marketsTraded,
+                winRate: winRate,
+                rarityScore: Math.floor((trader.pnl || 0) + (volume * 0.1)),
+              },
+              update: {
+                displayName: trader.userName || undefined,
+                profilePicture: trader.profileImage || undefined,
+                twitterUsername: trader.xUsername || undefined,
+                tier: assignTier(trader, []),
+                realizedPnl: trader.pnl || 0,
+                totalPnl: trader.pnl || 0,
+                volume: volume,
+                tradeCount: marketsTraded,
+                winRate: winRate,
+                rarityScore: Math.floor((trader.pnl || 0) + (volume * 0.1)),
+                lastActiveAt: new Date(),
+              },
+            });
+            
+            logger.info(`   ✅ Added @${username} to DB (${trader.proxyWallet}, PnL: $${(trader.pnl / 1000).toFixed(1)}K)`);
+            found++;
+            traderFound = true;
+            break;
+          }
+        } catch (error: any) {
+          logger.error({ error: error.message, username, period }, 'Error searching for trader');
+        }
+        
+        // Small delay between periods
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      if (!traderFound) {
+        logger.warn(`   ⚠️  Trader @${username} not found in any leaderboard`);
+        notFound++;
+      }
+      
+      // Delay between traders to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    logger.info(`✅ Map trader sync complete: ${found} found, ${notFound} not found`);
+  } catch (error: any) {
+    logger.error({ error: error.message }, '❌ Map trader sync failed');
+    throw error;
+  }
 }

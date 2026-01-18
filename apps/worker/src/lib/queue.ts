@@ -10,6 +10,7 @@ export const queues = {
 export type JobType = 
   | 'sync-leaderboard'
   | 'sync-markets'
+  | 'sync-map-traders'
   | 'sync-trader-trades'
   | 'sync-trader-positions'
   | 'calculate-rarity-scores'
