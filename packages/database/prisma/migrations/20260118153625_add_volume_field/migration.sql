@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "Trader" ADD COLUMN "volume" DECIMAL(20,8) NOT NULL DEFAULT 0;
