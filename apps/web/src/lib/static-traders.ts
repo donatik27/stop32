@@ -15,51 +15,125 @@ export interface MappedTrader {
   rarityScore: number;
 }
 
-// Country coordinates
-const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
-  'Germany': { lat: 51.1657, lon: 10.4515 },
-  'Europe': { lat: 50.0, lon: 10.0 },
-  'Brazil': { lat: -14.2350, lon: -51.9253 },
-  'Italy': { lat: 41.8719, lon: 12.5674 },
-  'East Asia & Pacific': { lat: 35.0, lon: 105.0 },
-  'United States': { lat: 37.0902, lon: -95.7129 },
-  'Spain': { lat: 40.4637, lon: -3.7492 },
-  'Australasia': { lat: -25.0, lon: 135.0 },
-  'Australia': { lat: -25.2744, lon: 133.7751 },
-  'Hong Kong': { lat: 22.3193, lon: 114.1694 },
-  'United Kingdom': { lat: 55.3781, lon: -3.4360 },
-  'Korea': { lat: 37.5665, lon: 126.9780 },
-  'Japan': { lat: 36.2048, lon: 138.2529 },
-  'Lithuania': { lat: 55.1694, lon: 23.8813 },
-  'Canada': { lat: 56.1304, lon: -106.3468 },
-  'Denmark': { lat: 56.2639, lon: 9.5018 },
-  'Thailand': { lat: 15.8700, lon: 100.9925 },
-  'Slovakia': { lat: 48.6690, lon: 19.6990 },
-  'Morocco': { lat: 31.7917, lon: -7.0926 },
-  'Estonia': { lat: 58.5953, lon: 25.0136 },
-  'Turkey': { lat: 38.9637, lon: 35.2433 },
-  'Indonesia': { lat: -0.7893, lon: 113.9213 },
-  'West Asia': { lat: 29.0, lon: 53.0 },
-  'Poland': { lat: 51.9194, lon: 19.1451 },
-  'Austria': { lat: 47.5162, lon: 14.5501 },
-  'North America': { lat: 54.5260, lon: -105.2551 },
-  'Netherlands': { lat: 52.1326, lon: 5.2913 },
-  'Ireland': { lat: 53.4129, lon: -8.2439 },
-  'New Zealand': { lat: -40.9006, lon: 174.8860 },
-  'Sweden': { lat: 60.1282, lon: 18.6435 },
-  'Ecuador': { lat: -1.8312, lon: -78.1834 },
-  'Singapore': { lat: 1.3521, lon: 103.8198 },
-  'Uzbekistan': { lat: 41.3775, lon: 64.5853 },
-  'United Arab Emirates': { lat: 23.4241, lon: 53.8478 },
-  'Ukraine': { lat: 48.3794, lon: 31.1656 },
-  'Czech Republic': { lat: 49.8175, lon: 15.4730 },
-  'Taiwan': { lat: 23.6978, lon: 120.9605 },
-  'Eastern Europe (Non-EU)': { lat: 50.0, lon: 30.0 },
-  'France': { lat: 46.2276, lon: 2.2137 },
-  'Argentina': { lat: -38.4161, lon: -63.6167 },
-  'South Asia': { lat: 20.0, lon: 78.0 },
-  'India': { lat: 20.5937, lon: 78.9629 },
-  'Croatia': { lat: 45.1, lon: 15.2 },
+// Country coordinates with multiple cities for variety
+const COUNTRY_COORDS: Record<string, { lat: number; lon: number }[]> = {
+  'Germany': [
+    { lat: 52.5200, lon: 13.4050 }, // Berlin
+    { lat: 48.1351, lon: 11.5820 }, // Munich
+    { lat: 50.1109, lon: 8.6821 },  // Frankfurt
+  ],
+  'Europe': [
+    { lat: 48.8566, lon: 2.3522 },  // Paris
+    { lat: 51.5074, lon: -0.1278 }, // London
+    { lat: 52.3676, lon: 4.9041 },  // Amsterdam
+  ],
+  'Brazil': [
+    { lat: -23.5505, lon: -46.6333 }, // São Paulo
+    { lat: -22.9068, lon: -43.1729 }, // Rio
+    { lat: -15.8267, lon: -47.9218 }, // Brasília
+  ],
+  'Italy': [
+    { lat: 41.9028, lon: 12.4964 }, // Rome
+    { lat: 45.4642, lon: 9.1900 },  // Milan
+  ],
+  'East Asia & Pacific': [
+    { lat: 31.2304, lon: 121.4737 }, // Shanghai
+    { lat: 39.9042, lon: 116.4074 }, // Beijing
+    { lat: 35.6762, lon: 139.6503 }, // Tokyo
+  ],
+  'United States': [
+    { lat: 40.7128, lon: -74.0060 }, // NYC
+    { lat: 34.0522, lon: -118.2437 }, // LA
+    { lat: 37.7749, lon: -122.4194 }, // SF
+    { lat: 41.8781, lon: -87.6298 }, // Chicago
+    { lat: 30.2672, lon: -97.7431 }, // Austin
+    { lat: 25.7617, lon: -80.1918 }, // Miami
+    { lat: 47.6062, lon: -122.3321 }, // Seattle
+    { lat: 42.3601, lon: -71.0589 }, // Boston
+  ],
+  'Spain': [
+    { lat: 40.4168, lon: -3.7038 }, // Madrid
+    { lat: 41.3851, lon: 2.1734 },  // Barcelona
+  ],
+  'Australasia': [{ lat: -25.2744, lon: 133.7751 }],
+  'Australia': [
+    { lat: -33.8688, lon: 151.2093 }, // Sydney
+    { lat: -37.8136, lon: 144.9631 }, // Melbourne
+  ],
+  'Hong Kong': [
+    { lat: 22.3193, lon: 114.1694 },
+    { lat: 22.2783, lon: 114.1747 },
+    { lat: 22.3964, lon: 114.1095 },
+  ],
+  'United Kingdom': [
+    { lat: 51.5074, lon: -0.1278 },  // London
+    { lat: 53.4808, lon: -2.2426 },  // Manchester
+  ],
+  'Korea': [
+    { lat: 37.5665, lon: 126.9780 }, // Seoul
+    { lat: 35.1796, lon: 129.0756 }, // Busan
+  ],
+  'Japan': [
+    { lat: 35.6762, lon: 139.6503 }, // Tokyo
+    { lat: 34.6937, lon: 135.5023 }, // Osaka
+    { lat: 35.0116, lon: 135.7681 }, // Kyoto
+  ],
+  'Lithuania': [{ lat: 54.6872, lon: 25.2797 }], // Vilnius
+  'Canada': [
+    { lat: 43.6532, lon: -79.3832 }, // Toronto
+    { lat: 49.2827, lon: -123.1207 }, // Vancouver
+    { lat: 45.5017, lon: -73.5673 },  // Montreal
+  ],
+  'Denmark': [{ lat: 55.6761, lon: 12.5683 }], // Copenhagen
+  'Thailand': [{ lat: 13.7563, lon: 100.5018 }], // Bangkok
+  'Slovakia': [{ lat: 48.1486, lon: 17.1077 }], // Bratislava
+  'Morocco': [{ lat: 33.5731, lon: -7.5898 }], // Casablanca
+  'Estonia': [{ lat: 59.4370, lon: 24.7536 }], // Tallinn
+  'Turkey': [{ lat: 41.0082, lon: 28.9784 }], // Istanbul
+  'Indonesia': [{ lat: -6.2088, lon: 106.8456 }], // Jakarta
+  'West Asia': [
+    { lat: 25.2048, lon: 55.2708 }, // Dubai
+    { lat: 24.7136, lon: 46.6753 }, // Riyadh
+  ],
+  'Poland': [{ lat: 52.2297, lon: 21.0122 }], // Warsaw
+  'Austria': [{ lat: 48.2082, lon: 16.3738 }], // Vienna
+  'North America': [
+    { lat: 43.6532, lon: -79.3832 }, // Toronto
+    { lat: 40.7128, lon: -74.0060 }, // NYC
+  ],
+  'Netherlands': [
+    { lat: 52.3676, lon: 4.9041 }, // Amsterdam
+    { lat: 51.9225, lon: 4.4792 }, // Rotterdam
+  ],
+  'Ireland': [{ lat: 53.3498, lon: -6.2603 }], // Dublin
+  'New Zealand': [{ lat: -36.8485, lon: 174.7633 }], // Auckland
+  'Sweden': [{ lat: 59.3293, lon: 18.0686 }], // Stockholm
+  'Ecuador': [{ lat: -0.1807, lon: -78.4678 }], // Quito
+  'Singapore': [{ lat: 1.3521, lon: 103.8198 }],
+  'Uzbekistan': [{ lat: 41.2995, lon: 69.2401 }], // Tashkent
+  'United Arab Emirates': [{ lat: 25.2048, lon: 55.2708 }], // Dubai
+  'Ukraine': [
+    { lat: 50.4501, lon: 30.5234 }, // Kyiv
+    { lat: 49.8397, lon: 24.0297 }, // Lviv
+  ],
+  'Czech Republic': [{ lat: 50.0755, lon: 14.4378 }], // Prague
+  'Taiwan': [{ lat: 25.0330, lon: 121.5654 }], // Taipei
+  'Eastern Europe (Non-EU)': [{ lat: 50.4501, lon: 30.5234 }],
+  'France': [
+    { lat: 48.8566, lon: 2.3522 },  // Paris
+    { lat: 43.2965, lon: 5.3698 },  // Marseille
+  ],
+  'Argentina': [{ lat: -34.6037, lon: -58.3816 }], // Buenos Aires
+  'South Asia': [
+    { lat: 28.6139, lon: 77.2090 }, // Delhi
+    { lat: 19.0760, lon: 72.8777 }, // Mumbai
+  ],
+  'India': [
+    { lat: 28.6139, lon: 77.2090 }, // Delhi
+    { lat: 19.0760, lon: 72.8777 }, // Mumbai
+    { lat: 12.9716, lon: 77.5946 }, // Bangalore
+  ],
+  'Croatia': [{ lat: 45.8150, lon: 15.9819 }], // Zagreb
 };
 
 // Twitter username → location mapping
@@ -202,11 +276,19 @@ const TRADER_LOCATIONS: Record<string, { country: string; displayName: string; t
 
 // Generate static traders with coordinates
 export const STATIC_MAPPED_TRADERS: MappedTrader[] = Object.entries(TRADER_LOCATIONS).map(([xUsername, data]) => {
-  const coords = COUNTRY_COORDS[data.country];
+  const cityOptions = COUNTRY_COORDS[data.country];
   
-  // Add small random offset to avoid exact overlap
-  const latOffset = (Math.random() - 0.5) * 2;
-  const lonOffset = (Math.random() - 0.5) * 2;
+  if (!cityOptions || cityOptions.length === 0) {
+    console.warn(`No coordinates for ${data.country}`);
+    return null;
+  }
+  
+  // Pick random city from country
+  const cityCoords = cityOptions[Math.floor(Math.random() * cityOptions.length)];
+  
+  // Add random offset for variety within city (±0.3 degrees = ~30km)
+  const latOffset = (Math.random() - 0.5) * 0.6;
+  const lonOffset = (Math.random() - 0.5) * 0.6;
   
   // Generate fake address based on username
   const fakeAddress = `0x${xUsername.slice(0, 8).padEnd(40, '0')}`;
@@ -217,11 +299,11 @@ export const STATIC_MAPPED_TRADERS: MappedTrader[] = Object.entries(TRADER_LOCAT
     avatar: `https://unavatar.io/twitter/${xUsername}`,
     tier: data.tier,
     xUsername,
-    latitude: coords.lat + latOffset,
-    longitude: coords.lon + lonOffset,
+    latitude: cityCoords.lat + latOffset,
+    longitude: cityCoords.lon + lonOffset,
     country: data.country,
     totalPnl: data.tier === 'S' ? 100000 : data.tier === 'A' ? 50000 : 25000,
     winRate: data.tier === 'S' ? 0.65 : data.tier === 'A' ? 0.58 : 0.52,
     rarityScore: data.tier === 'S' ? 80000 : data.tier === 'A' ? 60000 : 40000,
   };
-});
+}).filter(Boolean) as MappedTrader[];
