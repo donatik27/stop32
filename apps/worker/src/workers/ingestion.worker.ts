@@ -555,46 +555,53 @@ async function syncMapTraders(payload: any) {
           }
         }
         
-        // Save to DB if found
+        // Save to DB if found (ALWAYS UPDATE with latest data!)
         if (traderAddress) {
-          const existing = await prisma.trader.findUnique({
+          // Calculate values from Polymarket data (or use fallback)
+          const pnl = traderData?.pnl || 25000; // Default B-tier PnL
+          const volume = traderData?.volume || 0;
+          const marketsTraded = traderData?.markets_traded || 10;
+          const winRate = marketsTraded > 0 && pnl > 0 
+            ? Math.min(((pnl / (volume || pnl)) * 100), 75)
+            : 50;
+          
+          // CRITICAL: Use UPSERT to always update with latest data!
+          const trader = await prisma.trader.upsert({
             where: { address: traderAddress },
+            update: {
+              // Update existing trader with REAL data from Polymarket
+              displayName: traderData?.userName || username,
+              profilePicture: traderData?.profileImage || `https://unavatar.io/twitter/${username}`,
+              twitterUsername: username,
+              tier: pnl > 100000 ? 'S' : pnl > 50000 ? 'A' : 'B',
+              realizedPnl: pnl,
+              totalPnl: pnl,
+              tradeCount: marketsTraded,
+              winRate: winRate,
+              rarityScore: Math.floor(pnl + (volume * 0.1)),
+            },
+            create: {
+              // Create new trader with REAL data from Polymarket
+              address: traderAddress,
+              displayName: traderData?.userName || username,
+              profilePicture: traderData?.profileImage || `https://unavatar.io/twitter/${username}`,
+              twitterUsername: username,
+              tier: pnl > 100000 ? 'S' : pnl > 50000 ? 'A' : 'B',
+              realizedPnl: pnl,
+              totalPnl: pnl,
+              tradeCount: marketsTraded,
+              winRate: winRate,
+              rarityScore: Math.floor(pnl + (volume * 0.1)),
+            }
           });
           
-          if (existing) {
-            logger.info(`      ✓ @${username} already in DB`);
-            found++;
-          } else {
-            // Create with available data (or fallback values)
-            const pnl = traderData?.pnl || 25000; // Default B-tier PnL
-            const volume = traderData?.volume || 0;
-            const marketsTraded = traderData?.markets_traded || 10;
-            const winRate = marketsTraded > 0 && pnl > 0 
-              ? Math.min(((pnl / (volume || pnl)) * 100), 75)
-              : 50;
-            
-            await prisma.trader.create({
-              data: {
-                address: traderAddress,
-                displayName: traderData?.userName || username,
-                profilePicture: traderData?.profileImage || `https://unavatar.io/twitter/${username}`,
-                twitterUsername: username,
-                tier: pnl > 100000 ? 'S' : pnl > 50000 ? 'A' : 'B',
-                realizedPnl: pnl,
-                totalPnl: pnl,
-                tradeCount: marketsTraded,
-                winRate: winRate,
-                rarityScore: Math.floor(pnl + (volume * 0.1)),
-              }
-            });
-            
-            logger.info(`      ✅ Created profile for @${username} (${traderAddress}, PnL: $${(pnl / 1000).toFixed(1)}K)`);
-            found++;
-            created++;
-          }
+          const action = trader ? '🔄 Updated' : '✅ Created';
+          logger.info(`      ${action} profile for @${username} (${traderAddress}, PnL: $${(pnl / 1000).toFixed(1)}K)`);
+          found++;
+          if (!trader) created++;
         } else {
           // FALLBACK: Create profile with fake address (deterministic from username)
-          logger.warn(`      ⚠️  @${username} not found in API - creating fallback profile`);
+          logger.warn(`      ⚠️  @${username} not found in Polymarket API - using fallback`);
           
           // CRITICAL: Use SAME algorithm as static-traders.ts!
           // This ensures addresses match between frontend and database
@@ -602,33 +609,28 @@ async function syncMapTraders(payload: any) {
           
           logger.info(`      → Fake address: ${fakeAddress}`);
           
-          const existing = await prisma.trader.findUnique({
+          // Use UPSERT to avoid duplicates (if fallback was created before)
+          await prisma.trader.upsert({
             where: { address: fakeAddress },
+            update: {
+              // Keep existing fallback data (no new data available)
+            },
+            create: {
+              address: fakeAddress,
+              displayName: username,
+              profilePicture: `https://unavatar.io/twitter/${username}`,
+              twitterUsername: username,
+              tier: 'B',
+              realizedPnl: 25000,
+              totalPnl: 25000,
+              tradeCount: 10,
+              winRate: 50,
+              rarityScore: 25000,
+            }
           });
           
-          if (!existing) {
-            await prisma.trader.create({
-              data: {
-                address: fakeAddress,
-                displayName: username,
-                profilePicture: `https://unavatar.io/twitter/${username}`,
-                twitterUsername: username,
-                tier: 'B',
-                realizedPnl: 25000,
-                totalPnl: 25000,
-                tradeCount: 10,
-                winRate: 50,
-                rarityScore: 25000,
-              }
-            });
-            
-            logger.info(`      ✅ Created fallback profile for @${username} (${fakeAddress})`);
-            found++;
-            created++;
-          } else {
-            logger.info(`      ✓ Fallback profile already exists for @${username}`);
-            found++;
-          }
+          logger.info(`      ✅ Ensured fallback profile for @${username} (${fakeAddress})`);
+          found++;
         }
         
       } catch (error: any) {
