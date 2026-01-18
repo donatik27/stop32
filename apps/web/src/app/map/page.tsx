@@ -91,7 +91,7 @@ export default function MapPage() {
       setLoading(true)
       
       // Fetch ONLY public traders with real geolocations
-      const tradersRes = await fetch('/api/traders-with-location')
+      const tradersRes = await fetch('/api/traders-map-static')
       const publicTraders: any[] = await tradersRes.json()
       
       console.log(`✅ Loaded ${publicTraders.length} public traders with geolocations`)
