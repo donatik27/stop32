@@ -332,21 +332,9 @@ export default function MapPage() {
               const displayTraders = shuffled.slice(0, 8);
               
               return displayTraders.map((marker) => (
-                <div
+                <a
                   key={marker.trader.address}
-                  onClick={() => {
-                    // Set focused trader
-                    setFocusedTrader({
-                      lat: marker.lat,
-                      lng: marker.lng,
-                      address: marker.trader.address
-                    });
-                    
-                    // Auto-clear focus after 8 seconds
-                    setTimeout(() => {
-                      setFocusedTrader(null);
-                    }, 8000);
-                  }}
+                  href={`/traders/${marker.trader.address}`}
                   className="flex items-center justify-between p-2 bg-black/40 pixel-border border-white/20 hover:border-primary transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
@@ -384,7 +372,7 @@ export default function MapPage() {
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">{marker.region}</span>
-                </div>
+                </a>
               ))
             })()}
           </div>
