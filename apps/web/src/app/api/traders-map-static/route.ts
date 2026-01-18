@@ -14,8 +14,8 @@ export async function GET() {
     latitude: t.latitude,
     longitude: t.longitude,
     country: t.country, // Include country for region grouping
-    totalPnl: 0, // Static data doesn't have PnL
-    rarityScore: 0,
+    totalPnl: t.totalPnl, // Use real PnL from static data
+    rarityScore: t.rarityScore, // Use real rarity score
   }));
   
   return NextResponse.json(traders);

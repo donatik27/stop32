@@ -98,13 +98,19 @@ function RotatingGlobe({
   // Update target rotation when focused trader changes
   React.useEffect(() => {
     if (focusedTrader && groupRef.current) {
-      // Convert lat/lng to rotation angles
-      // Longitude -> Y rotation (around vertical axis)
-      // Latitude -> X rotation (around horizontal axis)
-      const targetY = -(focusedTrader.lng * Math.PI) / 180;
-      const targetX = (focusedTrader.lat * Math.PI) / 180;
+      // Convert lat/lng to rotation angles to face the camera
+      // Longitude: rotate around Y axis (horizontal spin)
+      // We need to rotate TO the point, so it faces the camera (at z=5)
+      const targetY = (focusedTrader.lng * Math.PI) / 180;
       
-      targetRotationRef.current = { y: targetY, x: targetX };
+      // Latitude: tilt around X axis (vertical tilt)
+      // Negative to tilt correctly (positive lat = tilt down to see it)
+      const targetX = -(focusedTrader.lat * Math.PI) / 180;
+      
+      // Clamp X rotation to prevent extreme tilting
+      const clampedX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, targetX));
+      
+      targetRotationRef.current = { y: targetY, x: clampedX };
     }
   }, [focusedTrader]);
 
