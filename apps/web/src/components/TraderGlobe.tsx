@@ -95,6 +95,14 @@ function RotatingGlobe({
   const groupRef = useRef<THREE.Group>(null);
   const targetRotationRef = useRef({ y: 0, x: 0 });
 
+  // Initialize globe at horizontal position
+  React.useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.rotation.x = 0; // Horizontal
+      groupRef.current.rotation.y = 0; // Facing forward
+    }
+  }, []);
+
   // Update target rotation when focused trader changes
   React.useEffect(() => {
     if (focusedTrader && groupRef.current) {
@@ -111,6 +119,9 @@ function RotatingGlobe({
       const clampedX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, targetX));
       
       targetRotationRef.current = { y: targetY, x: clampedX };
+    } else {
+      // Reset to neutral position when no trader is focused
+      targetRotationRef.current = { y: 0, x: 0 };
     }
   }, [focusedTrader]);
 
@@ -122,9 +133,15 @@ function RotatingGlobe({
         const lerpSpeed = 0.05;
         groupRef.current.rotation.y += (targetRotationRef.current.y - groupRef.current.rotation.y) * lerpSpeed;
         groupRef.current.rotation.x += (targetRotationRef.current.x - groupRef.current.rotation.x) * lerpSpeed;
-      } else if (shouldRotate) {
-        // Auto-rotate
-        groupRef.current.rotation.y += 0.002;
+      } else {
+        // Reset X rotation to horizontal (0)
+        const lerpSpeed = 0.05;
+        groupRef.current.rotation.x += (0 - groupRef.current.rotation.x) * lerpSpeed;
+        
+        // Auto-rotate around Y axis
+        if (shouldRotate) {
+          groupRef.current.rotation.y += 0.002;
+        }
       }
     }
   });
