@@ -503,6 +503,85 @@ app.get('/api/redirect-market/:marketId', async (req, res) => {
   }
 });
 
+app.get('/api/traders-map-static', async (_req, res) => {
+  try {
+    // Static trader coordinates with Twitter usernames
+    const TRADER_LOCATIONS: Record<string, { country: string; displayName: string; tier: 'S' | 'A' | 'B' }> = {
+      '0xTactic': { country: 'Germany', displayName: 'Tactic', tier: 'S' },
+      '0xTrinity': { country: 'Europe', displayName: '0xTrinity.eth', tier: 'S' },
+      'ColeBartiromo': { country: 'United States', displayName: 'Cole Bartiromo', tier: 'S' },
+      'Betwick1': { country: 'Spain', displayName: 'Betwick', tier: 'S' },
+      'holy_moses7': { country: 'West Asia', displayName: 'Moses', tier: 'B' },
+      // Add more as needed...
+    };
+
+    // Fetch real traders from database
+    const dbTraders = await prisma.trader.findMany({
+      where: {
+        twitterUsername: { not: null },
+      },
+      select: {
+        address: true,
+        displayName: true,
+        profilePicture: true,
+        twitterUsername: true,
+        tier: true,
+        totalPnl: true,
+        rarityScore: true,
+      },
+    });
+
+    // Create map of Twitter username -> real trader data
+    const traderMap = new Map(
+      dbTraders.map((t) => [t.twitterUsername?.toLowerCase(), t])
+    );
+
+    // Merge static coordinates with real data
+    const traders = Object.entries(TRADER_LOCATIONS).map(([xUsername, data]) => {
+      const realTrader = traderMap.get(xUsername.toLowerCase());
+
+      // Generate coordinates (simplified - you can add real coordinate logic)
+      const hashCode = xUsername.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const lat = ((hashCode % 180) - 90);
+      const lng = ((hashCode * 17) % 360) - 180;
+
+      if (realTrader) {
+        return {
+          address: realTrader.address,
+          displayName: realTrader.displayName || data.displayName,
+          profilePicture: realTrader.profilePicture || `https://unavatar.io/twitter/${xUsername}`,
+          tier: realTrader.tier,
+          xUsername,
+          latitude: lat,
+          longitude: lng,
+          country: data.country,
+          totalPnl: Number(realTrader.totalPnl),
+          rarityScore: realTrader.rarityScore,
+        };
+      }
+
+      // Fallback to static
+      return {
+        address: `0x${xUsername.slice(0, 8).padEnd(40, '0')}`,
+        displayName: data.displayName,
+        profilePicture: `https://unavatar.io/twitter/${xUsername}`,
+        tier: data.tier,
+        xUsername,
+        latitude: lat,
+        longitude: lng,
+        country: data.country,
+        totalPnl: data.tier === 'S' ? 100000 : data.tier === 'A' ? 50000 : 25000,
+        rarityScore: data.tier === 'S' ? 80000 : data.tier === 'A' ? 60000 : 40000,
+      };
+    });
+
+    res.json(traders);
+  } catch (error) {
+    console.error('Failed to fetch map traders:', error);
+    res.status(500).json({ error: 'Failed to fetch map traders' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`✅ API server running on port ${port}`);
 });
