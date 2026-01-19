@@ -106,11 +106,24 @@ async function syncLeaderboard(payload: any) {
           ? Math.min(((t.pnl / volume) * 100), 100) // Estimate based on PnL/Volume ratio
           : 0;
         
-        // Check if trader already exists with Twitter username
-        const existing = await prisma.trader.findUnique({
-          where: { address: t.proxyWallet },
-          select: { twitterUsername: true },
-        });
+        // Build update object - only include twitterUsername if it has a value
+        const updateData: any = {
+          displayName: t.userName || undefined,
+          profilePicture: profilePic || undefined,
+          tier: assignTier(t, allTraders),
+          realizedPnl: t.pnl || 0,
+          totalPnl: t.pnl || 0,
+          tradeCount: marketsTraded,
+          winRate: winRate,
+          rarityScore: Math.floor((t.pnl || 0) + (volume * 0.1)),
+          lastActiveAt: new Date(),
+        };
+        
+        // CRITICAL: Only update twitterUsername if we have a value from API
+        // This prevents syncLeaderboard from erasing Twitter found by syncPublicTraders
+        if (t.xUsername) {
+          updateData.twitterUsername = t.xUsername;
+        }
         
         await prisma.trader.upsert({
           where: { address: t.proxyWallet },
@@ -124,22 +137,9 @@ async function syncLeaderboard(payload: any) {
             totalPnl: t.pnl || 0,
             tradeCount: marketsTraded,
             winRate: winRate,
-            rarityScore: Math.floor((t.pnl || 0) + (volume * 0.1)), // Simple score based on PnL + Volume
-          },
-          update: {
-            displayName: t.userName || undefined,
-            profilePicture: profilePic || undefined,
-            // IMPORTANT: Only update twitterUsername if new value exists OR no existing value
-            // This prevents syncLeaderboard (MONTH) from erasing Twitter found in DAY/WEEK
-            twitterUsername: t.xUsername ? t.xUsername : (existing?.twitterUsername || undefined),
-            tier: assignTier(t, allTraders),
-            realizedPnl: t.pnl || 0,
-            totalPnl: t.pnl || 0,
-            tradeCount: marketsTraded,
-            winRate: winRate,
             rarityScore: Math.floor((t.pnl || 0) + (volume * 0.1)),
-            lastActiveAt: new Date(),
           },
+          update: updateData,
         });
         saved++;
       } catch (error: any) {
