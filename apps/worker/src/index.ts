@@ -37,10 +37,19 @@ async function main() {
   );
   logger.info('✅ [2/3] Markets sync queued (starts in 10 seconds)');
   
+  // 🎯 SYNC PUBLIC TRADERS - AUTO (after leaderboard completes)
+  await queues.ingestion.add(
+    'sync-public-traders-delayed',
+    { type: 'sync-public-traders' },
+    { delay: 300000, priority: 1 } // 5 minutes delay (after leaderboard completes)
+  );
+  logger.info('✅ [3/3] SYNC PUBLIC TRADERS queued (starts in 5 minutes)');
+  
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('⏰ Timeline:');
   logger.info('   NOW        → Leaderboard TOP-1000 (month only)');
   logger.info('   +10 sec    → Markets');
+  logger.info('   +5 min     → 🎯 Sync PUBLIC traders (day+week+month)');
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('🎉 Worker is running!');
 }
