@@ -30,12 +30,13 @@ async function main() {
   logger.info('✅ [1/3] Leaderboard sync queued (TOP-1000 MONTH, starts NOW)');
   
   // Trigger markets sync immediately (after 10 seconds)
-  await queues.ingestion.add(
-    'sync-markets-immediate',
-    { type: 'sync-markets' },
-    { delay: 10000, priority: 1 }
-  );
-  logger.info('✅ [2/3] Markets sync queued (starts in 10 seconds)');
+  // TEMPORARILY DISABLED - focus on leaderboard + map only
+  // await queues.ingestion.add(
+  //   'sync-markets-immediate',
+  //   { type: 'sync-markets' },
+  //   { delay: 10000, priority: 1 }
+  // );
+  // logger.info('✅ [2/3] Markets sync queued (starts in 10 seconds)');
   
   // 🎯 SYNC PUBLIC TRADERS - AUTO (after leaderboard completes)
   await queues.ingestion.add(
@@ -48,8 +49,11 @@ async function main() {
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('⏰ Timeline:');
   logger.info('   NOW        → Leaderboard TOP-1000 (month only)');
-  logger.info('   +10 sec    → Markets');
   logger.info('   +5 min     → 🎯 Sync PUBLIC traders (day+week+month)');
+  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('');
+  logger.info('💡 FOCUS MODE: Leaderboard + Media X + Map only');
+  logger.info('   (Markets & Smart Markets temporarily disabled)');
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('🎉 Worker is running!');
 }

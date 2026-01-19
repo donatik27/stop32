@@ -15,16 +15,17 @@ export async function scheduleJobs() {
   logger.info('Scheduled: sync-leaderboard (every 5 minutes)');
 
   // Sync markets every 10 minutes
-  await queues.ingestion.add(
-    'sync-markets',
-    { type: 'sync-markets' },
-    {
-      repeat: {
-        pattern: '*/10 * * * *', // Every 10 minutes
-      },
-    }
-  );
-  logger.info('Scheduled: sync-markets (every 10 minutes)');
+  // TEMPORARILY DISABLED - focus on leaderboard + map only
+  // await queues.ingestion.add(
+  //   'sync-markets',
+  //   { type: 'sync-markets' },
+  //   {
+  //     repeat: {
+  //       pattern: '*/10 * * * *', // Every 10 minutes
+  //       },
+  //   }
+  // );
+  // logger.info('Scheduled: sync-markets (every 10 minutes)');
 
   // Calculate rarity scores every 30 minutes
   await queues.scoring.add(
