@@ -193,6 +193,10 @@ async function syncLeaderboard(payload: any) {
   
     logger.info(`✅ Leaderboard sync completed! Saved ${saved} traders`);
     
+    // 🎯 SYNC STATIC X TRADERS (ensures ALL X traders are in DB, not just top-1000)
+    logger.info('🎯 Syncing static X traders...');
+    await syncStaticXTraders();
+    
     // 🗺️ ALWAYS update manually added locations (overwrite if needed)
     logger.info('🗺️  Updating manually added trader locations...');
     await updateManualLocations();
@@ -217,6 +221,153 @@ async function syncLeaderboard(payload: any) {
   } catch (error: any) {
     logger.error({ error: error.message }, 'Leaderboard sync failed');
     throw error;
+  }
+}
+
+// Sync ALL static X traders (ensures they exist in DB even if not in top-1000 month)
+async function syncStaticXTraders() {
+  try {
+    logger.info(`🔄 Syncing ${Object.keys(X_TRADERS_STATIC).length} static X traders...`);
+    
+    let created = 0;
+    let updated = 0;
+    let notFound = 0;
+    
+    // Search in ALL leaderboards (month, week, day) to find PnL data
+    const leaderboards = new Map<string, any>(); // address -> trader data
+    
+    logger.info('📥 Fetching leaderboards to find X traders PnL...');
+    for (const period of ['month', 'week', 'day']) {
+      try {
+        const res = await fetch(
+          `https://data-api.polymarket.com/v1/leaderboard?timePeriod=${period}&orderBy=PNL&limit=1000`
+        );
+        
+        if (res.ok) {
+          const traders = await res.json();
+          for (const t of traders) {
+            if (t.proxyWallet) {
+              const address = t.proxyWallet.toLowerCase();
+              // Keep best PnL
+              if (!leaderboards.has(address) || (t.pnl || 0) > (leaderboards.get(address).pnl || 0)) {
+                leaderboards.set(address, t);
+              }
+            }
+          }
+          logger.info(`   ✓ ${period}: found ${traders.length} traders`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error: any) {
+        logger.error({ error: error.message, period }, 'Failed to fetch leaderboard');
+      }
+    }
+    
+    logger.info(`📊 Total unique traders in leaderboards: ${leaderboards.size}`);
+    logger.info('💾 Upserting static X traders...');
+    
+    // Now upsert each static X trader
+    for (const [twitterUsername, data] of Object.entries(X_TRADERS_STATIC)) {
+      try {
+        const address = data.address.toLowerCase();
+        const apiTrader = leaderboards.get(address);
+        
+        const existing = await prisma.trader.findUnique({
+          where: { address },
+          select: { address: true },
+        });
+        
+        if (apiTrader) {
+          // Found in leaderboard - use real data
+          const volume = apiTrader.volume || 0;
+          const marketsTraded = apiTrader.markets_traded || 0;
+          const winRate = marketsTraded > 0 && apiTrader.pnl > 0 
+            ? Math.min(((apiTrader.pnl / volume) * 100), 100)
+            : 0;
+          
+          await prisma.trader.upsert({
+            where: { address },
+            create: {
+              address,
+              displayName: apiTrader.userName || twitterUsername,
+              profilePicture: apiTrader.profileImage || null,
+              twitterUsername: twitterUsername,
+              tier: 'S',
+              realizedPnl: apiTrader.pnl || 0,
+              totalPnl: apiTrader.pnl || 0,
+              tradeCount: marketsTraded,
+              winRate: winRate,
+              rarityScore: Math.floor((apiTrader.pnl || 0) + (volume * 0.1)),
+            },
+            update: {
+              displayName: apiTrader.userName || twitterUsername,
+              profilePicture: apiTrader.profileImage || null,
+              twitterUsername: twitterUsername,
+              tier: 'S',
+              realizedPnl: apiTrader.pnl || 0,
+              totalPnl: apiTrader.pnl || 0,
+              tradeCount: marketsTraded,
+              winRate: winRate,
+              rarityScore: Math.floor((apiTrader.pnl || 0) + (volume * 0.1)),
+              lastActiveAt: new Date(),
+            },
+          });
+          
+          if (existing) {
+            updated++;
+            logger.info({ twitterUsername, pnl: apiTrader.pnl }, '   ✅ Updated with real data');
+          } else {
+            created++;
+            logger.info({ twitterUsername, pnl: apiTrader.pnl }, '   ✨ Created with real data');
+          }
+        } else {
+          // Not found in any leaderboard - create basic record
+          await prisma.trader.upsert({
+            where: { address },
+            create: {
+              address,
+              displayName: twitterUsername,
+              profilePicture: null,
+              twitterUsername: twitterUsername,
+              tier: 'S',
+              realizedPnl: 0,
+              totalPnl: 0,
+              tradeCount: 0,
+              winRate: 0,
+              rarityScore: 0,
+            },
+            update: {
+              twitterUsername: twitterUsername,
+              tier: 'S',
+            },
+          });
+          
+          if (existing) {
+            updated++;
+            logger.warn({ twitterUsername }, '   ⚠️  Updated (not in leaderboard)');
+          } else {
+            created++;
+            logger.warn({ twitterUsername }, '   ⚠️  Created (not in leaderboard)');
+          }
+          notFound++;
+        }
+        
+      } catch (error: any) {
+        logger.error({ error: error.message, twitterUsername }, '❌ Failed to sync trader');
+      }
+    }
+    
+    logger.info('');
+    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    logger.info('✅ STATIC X TRADERS SYNC COMPLETED!');
+    logger.info(`   ✨ Created: ${created}`);
+    logger.info(`   🔄 Updated: ${updated}`);
+    logger.info(`   ⚠️  Not in leaderboard: ${notFound}`);
+    logger.info(`   📊 Total X traders: ${Object.keys(X_TRADERS_STATIC).length}`);
+    logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+  } catch (error: any) {
+    logger.error({ error: error.message }, '❌ Failed to sync static X traders');
   }
 }
 
