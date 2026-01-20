@@ -511,6 +511,9 @@ async function updateManualLocations() {
     'Malaysia': { lat: 4.2105, lon: 101.9758 },
     'Chile': { lat: -35.6751, lon: -71.5430 },
     'United Arab Emirates': { lat: 23.4241, lon: 53.8478 },
+    'Czech Republic': { lat: 49.8175, lon: 15.4730 },
+    'Ecuador': { lat: -1.8312, lon: -78.1834 },
+    'Uzbekistan': { lat: 41.3775, lon: 64.5853 },
   };
 
   try {
@@ -524,9 +527,18 @@ async function updateManualLocations() {
         continue;
       }
 
-      // Add small random offset
-      const latOffset = (Math.random() - 0.5) * 2;
-      const lonOffset = (Math.random() - 0.5) * 2;
+      // Smart jitter: bigger offset for popular countries
+      // Count traders in this country
+      const tradersInCountry = Object.values(tradersWithCountry).filter(c => c === country).length;
+      
+      // Calculate offset based on trader density
+      let offsetMultiplier = 2; // default ±1°
+      if (tradersInCountry >= 10) offsetMultiplier = 12; // ±6° for 10+ traders
+      else if (tradersInCountry >= 5) offsetMultiplier = 8; // ±4° for 5-9 traders
+      else if (tradersInCountry >= 3) offsetMultiplier = 5; // ±2.5° for 3-4 traders
+      
+      const latOffset = (Math.random() - 0.5) * offsetMultiplier;
+      const lonOffset = (Math.random() - 0.5) * offsetMultiplier;
 
       const result = await prisma.trader.updateMany({
         where: { twitterUsername },
