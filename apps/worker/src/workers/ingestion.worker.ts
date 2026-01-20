@@ -260,6 +260,9 @@ async function updateManualLocations() {
     'North America': { lat: 54.5260, lon: -105.2551 },
     'Netherlands': { lat: 52.1326, lon: 5.2913 },
     'Ukraine': { lat: 48.3794, lon: 31.1656 },
+    'Malaysia': { lat: 4.2105, lon: 101.9758 },
+    'Chile': { lat: -35.6751, lon: -71.5430 },
+    'United Arab Emirates': { lat: 23.4241, lon: 53.8478 },
   };
 
   try {
