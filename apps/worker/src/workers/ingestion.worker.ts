@@ -94,14 +94,6 @@ async function syncLeaderboard(payload: any) {
       const address = t.proxyWallet.toLowerCase();
       
       try {
-        // Check if this trader is in static X traders list
-        const staticTwitter = getTwitterByAddress(address);
-        
-        // SKIP X traders - they have all-time PnL, don't overwrite with month PnL
-        if (staticTwitter) {
-          continue;
-        }
-        
         // Leaderboard API returns 'profileImage', not 'profilePicture'
         const profilePic = t.profileImage || null;
         
@@ -116,6 +108,9 @@ async function syncLeaderboard(payload: any) {
           ? Math.min(((t.pnl / volume) * 100), 100) // Estimate based on PnL/Volume ratio
           : 0;
         
+        // Check if this trader is in static X traders list (for twitterUsername)
+        const staticTwitter = getTwitterByAddress(address);
+        
         // Build update object - only include twitterUsername if it has a value
         const updateData: any = {
           displayName: t.userName || undefined,
@@ -129,8 +124,10 @@ async function syncLeaderboard(payload: any) {
           lastActiveAt: new Date(),
         };
         
-        // Non-X trader might still have xUsername from API
-        if (t.xUsername) {
+        // Set twitterUsername from static list or API
+        if (staticTwitter) {
+          updateData.twitterUsername = staticTwitter;
+        } else if (t.xUsername) {
           updateData.twitterUsername = t.xUsername;
         }
         
@@ -140,7 +137,7 @@ async function syncLeaderboard(payload: any) {
             address,
             displayName: t.userName || `${t.proxyWallet?.slice(0, 6)}...`,
             profilePicture: profilePic,
-            twitterUsername: t.xUsername || null,
+            twitterUsername: staticTwitter || t.xUsername || null,
             tier: assignTier(t, allTraders),
             realizedPnl: t.pnl || 0,
             totalPnl: t.pnl || 0,
@@ -193,14 +190,6 @@ async function syncLeaderboard(payload: any) {
   });
   
     logger.info(`✅ Leaderboard sync completed! Saved ${saved} traders`);
-    
-    // 🎯 SYNC STATIC X TRADERS (ensures ALL X traders are in DB, not just top-1000)
-    logger.info('🎯 Syncing static X traders...');
-    await syncStaticXTraders();
-    
-    // 💰 UPDATE PNL FOR ALL X TRADERS (not just static, but ALL with twitterUsername)
-    logger.info('💰 Updating PnL for ALL X traders...');
-    await syncAllXTradersPnl();
     
     // 🗺️ ALWAYS update manually added locations (overwrite if needed)
     logger.info('🗺️  Updating manually added trader locations...');
