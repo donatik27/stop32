@@ -94,6 +94,14 @@ async function syncLeaderboard(payload: any) {
       const address = t.proxyWallet.toLowerCase();
       
       try {
+        // Check if this trader is in static X traders list
+        const staticTwitter = getTwitterByAddress(address);
+        
+        // SKIP X traders - they have all-time PnL, don't overwrite with month PnL
+        if (staticTwitter) {
+          continue;
+        }
+        
         // Leaderboard API returns 'profileImage', not 'profilePicture'
         const profilePic = t.profileImage || null;
         
@@ -121,15 +129,8 @@ async function syncLeaderboard(payload: any) {
           lastActiveAt: new Date(),
         };
         
-        // Check if this trader is in static X traders list
-        const staticTwitter = getTwitterByAddress(address);
-        
-        if (staticTwitter) {
-          // X trader from static list - ALWAYS set twitterUsername
-          updateData.twitterUsername = staticTwitter;
-          updateData.tier = 'S'; // X traders are always S-tier
-        } else if (t.xUsername) {
-          // Trader has xUsername from API but not in static list - still save it
+        // Non-X trader might still have xUsername from API
+        if (t.xUsername) {
           updateData.twitterUsername = t.xUsername;
         }
         
@@ -139,8 +140,8 @@ async function syncLeaderboard(payload: any) {
             address,
             displayName: t.userName || `${t.proxyWallet?.slice(0, 6)}...`,
             profilePicture: profilePic,
-            twitterUsername: staticTwitter || t.xUsername || null,
-            tier: staticTwitter ? 'S' : assignTier(t, allTraders),
+            twitterUsername: t.xUsername || null,
+            tier: assignTier(t, allTraders),
             realizedPnl: t.pnl || 0,
             totalPnl: t.pnl || 0,
             tradeCount: marketsTraded,
