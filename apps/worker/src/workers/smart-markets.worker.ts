@@ -87,17 +87,24 @@ async function updatePinnedMarkets(payload: any) {
     
     // Fetch ALL traders from DATABASE
     logger.info('📥 Loading ALL traders from database...');
-    const smartTraders = await prisma.trader.findMany({
+    const allTraders = await prisma.trader.findMany({
       where: {
         tier: { in: ['S', 'A', 'B'] }
       },
       select: {
         address: true,
         displayName: true,
-        tier: true
+        tier: true,
+        realizedPnl: true
       }
     });
-    logger.info(`✅ Loaded ${smartTraders.length} S/A/B tier traders from DB`);
+    
+    // Limit to TOP-100 traders to avoid RPC overload
+    const smartTraders = allTraders
+      .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
+      .slice(0, 100);
+    
+    logger.info(`✅ Using TOP-${smartTraders.length} traders for pinned markets analysis`);
     
     // Fetch market details
     const marketIds = pinnedMarkets.map(m => m.marketId);
@@ -206,7 +213,12 @@ async function discoverNewMarkets(payload: any) {
     logger.info(`   A-tier: ${allTraders.filter((t: any) => t.tier === 'A').length}`);
     logger.info(`   B-tier: ${allTraders.filter((t: any) => t.tier === 'B').length}`);
     
-    const smartTraders = allTraders;
+    // Limit to TOP-100 traders to avoid RPC overload (100 traders × 2 tokens = 200 calls max)
+    const smartTraders = allTraders
+      .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
+      .slice(0, 100);
+    
+    logger.info(`🎯 Using TOP-${smartTraders.length} traders for analysis`);
     
     // Fetch top markets (excluding already pinned)
     const pinnedMarketIds = (await prisma.marketSmartStats.findMany({
