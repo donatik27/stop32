@@ -108,29 +108,33 @@ export default function MapPage() {
       console.log(`✅ Loaded ${publicTraders.length} public traders with geolocations`)
       
       // Map public traders with real locations
-      const tradersWithLocations: TraderMarker[] = publicTraders.map((pubTrader) => {
-        const trader: Trader = {
-          address: pubTrader.address,
-          displayName: pubTrader.displayName || 'Unknown',
-          tier: pubTrader.tier || 'S',
-          rarityScore: pubTrader.rarityScore || 0,
-          avatar: pubTrader.profilePicture || `https://api.dicebear.com/7.x/shapes/svg?seed=${pubTrader.address}`,
-          estimatedPnL: Number(pubTrader.totalPnl) || 0,
-        }
-        
-        // Convert lat/lng to screen coordinates
-        const x = ((pubTrader.longitude + 180) / 360) * 100
-        const y = ((90 - pubTrader.latitude) / 180) * 100
-        
-        return {
-          trader,
-          lat: pubTrader.latitude,
-          lng: pubTrader.longitude,
-          region: pubTrader.country || 'Unknown',
-          x,
-          y
-        }
-      })
+      const tradersWithLocations: TraderMarker[] = publicTraders
+        .filter(t => t.latitude != null && t.longitude != null) // Only with coordinates
+        .map((pubTrader) => {
+          const trader: Trader = {
+            address: pubTrader.address,
+            displayName: pubTrader.displayName || 'Unknown',
+            tier: pubTrader.tier || 'S',
+            rarityScore: pubTrader.rarityScore || 0,
+            avatar: pubTrader.profilePicture || `https://api.dicebear.com/7.x/shapes/svg?seed=${pubTrader.address}`,
+            estimatedPnL: Number(pubTrader.totalPnl) || 0,
+          }
+          
+          // Convert lat/lng to screen coordinates
+          const lat = Number(pubTrader.latitude)
+          const lng = Number(pubTrader.longitude)
+          const x = ((lng + 180) / 360) * 100
+          const y = ((90 - lat) / 180) * 100
+          
+          return {
+            trader,
+            lat,
+            lng,
+            region: pubTrader.country || 'Unknown',
+            x,
+            y
+          }
+        })
       
       setTraders(tradersWithLocations)
       
