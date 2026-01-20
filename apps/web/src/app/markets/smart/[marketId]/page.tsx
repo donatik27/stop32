@@ -459,7 +459,7 @@ export default function SmartMarketDetailPage() {
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
                       <div className="text-2xl font-bold text-white mb-1">
-                        {percentage}¢
+                        {percentage}%
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Current Price
@@ -558,10 +558,10 @@ export default function SmartMarketDetailPage() {
 
                   <div className="mb-3">
                     <div className="text-4xl font-bold text-white mb-1">
-                      {percentage}¢
+                      {percentage}%
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      ${(price * 1).toFixed(2)} per share
+                      ${price.toFixed(4)} per share
                     </div>
                   </div>
 
@@ -613,7 +613,7 @@ export default function SmartMarketDetailPage() {
                   </h3>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-white">
-                      {(outcome.currentPrice * 100).toFixed(1)}¢
+                      {(outcome.currentPrice * 100).toFixed(1)}%
                     </span>
                     <span className="text-primary">
                       {(outcome.totalSmartShares / 1000).toFixed(1)}K shares
@@ -660,7 +660,7 @@ export default function SmartMarketDetailPage() {
                             {(pos.shares / 1000).toFixed(1)}K shares
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            @ {(pos.entryPrice * 100).toFixed(1)}¢
+                            Entry: {(pos.entryPrice * 100).toFixed(1)}%
                           </div>
                         </div>
                       </div>
@@ -726,7 +726,7 @@ export default function SmartMarketDetailPage() {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mb-1">
-                        Entry: {(trader.price * 100).toFixed(0)}¢
+                        Entry: {(trader.price * 100).toFixed(1)}%
                       </div>
                       <div className="text-lg font-bold text-white">
                         ${(trader.amount / 1000).toFixed(1)}K
