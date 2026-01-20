@@ -364,6 +364,29 @@ async function syncStaticXTraders() {
 // Update PnL for ALL X traders (not just static, but ALL with twitterUsername)
 async function syncAllXTradersPnl() {
   try {
+    // Fetch leaderboard for metadata (displayName, profilePicture from Polymarket)
+    const leaderboardData = new Map<string, any>(); // address -> trader metadata
+    
+    logger.info('📥 Fetching leaderboard for Polymarket metadata...');
+    try {
+      const res = await fetch(
+        `https://data-api.polymarket.com/v1/leaderboard?timePeriod=month&orderBy=PNL&limit=5000`
+      );
+      
+      if (res.ok) {
+        const traders = await res.json();
+        for (const t of traders) {
+          if (t.proxyWallet) {
+            leaderboardData.set(t.proxyWallet.toLowerCase(), t);
+          }
+        }
+        logger.info(`   ✓ Found ${traders.length} traders in leaderboard`);
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Failed to fetch leaderboard');
+    }
+    
     // Find ALL traders with twitterUsername (X traders)
     const allXTraders = await prisma.trader.findMany({
       where: {
@@ -372,11 +395,12 @@ async function syncAllXTradersPnl() {
       select: {
         address: true,
         twitterUsername: true,
+        displayName: true,
         totalPnl: true,
       },
     });
     
-    logger.info(`🔄 Found ${allXTraders.length} X traders in DB, updating PnL...`);
+    logger.info(`🔄 Found ${allXTraders.length} X traders in DB, updating PnL & metadata...`);
     
     let updated = 0;
     let failed = 0;
@@ -409,10 +433,17 @@ async function syncAllXTradersPnl() {
           continue;
         }
         
-        // Update PnL in DB
+        // Get Polymarket metadata (displayName, profilePicture)
+        const metadata = leaderboardData.get(address);
+        const displayName = metadata?.userName || trader.displayName || trader.twitterUsername;
+        const profilePicture = metadata?.profileImage || null;
+        
+        // Update PnL + Polymarket metadata in DB
         await prisma.trader.update({
           where: { address },
           data: {
+            displayName: displayName,
+            profilePicture: profilePicture,
             realizedPnl: allTimePnl,
             totalPnl: allTimePnl,
             lastActiveAt: new Date(),
