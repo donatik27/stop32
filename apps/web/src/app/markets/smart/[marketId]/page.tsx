@@ -9,6 +9,7 @@ interface Market {
   id: string
   question: string
   slug: string
+  eventSlug?: string // Polymarket event slug (same as Hot Markets!)
   negRiskMarketID?: string
   category: string
   volume: number
@@ -225,6 +226,7 @@ export default function SmartMarketDetailPage() {
           id: smartMarket.marketId,
           question: smartMarket.question,
           slug: (smartMarket as any).slug || null,
+          eventSlug: dbEventSlug || null, // ✅ Add eventSlug to market object (same as Hot Markets!)
           category: smartMarket.category,
           volume: smartMarket.volume,
           liquidity: 0,
@@ -233,7 +235,7 @@ export default function SmartMarketDetailPage() {
           endDate: smartMarket.endDate
         }
         
-        // Set eventSlug directly from database
+        // Set eventSlug state for legacy code (still used by eventInfo fetch)
         if (dbEventSlug) {
           setEventSlug(dbEventSlug)
           console.log(`✅ Event slug from DB: ${dbEventSlug}`)
@@ -425,10 +427,10 @@ export default function SmartMarketDetailPage() {
             </div>
           </div>
           
-          {/* Polymarket Link */}
+          {/* Polymarket Link - Same logic as Hot Markets! */}
           <a
-            href={eventInfo 
-              ? `https://polymarket.com/event/${eventInfo.eventSlug}` 
+            href={market?.eventSlug 
+              ? `https://polymarket.com/event/${market.eventSlug}` 
               : `/api/redirect-market/${marketId}`
             }
             target="_blank"
@@ -537,9 +539,9 @@ export default function SmartMarketDetailPage() {
               const shortName = extractOutcomeShortName(outcome.outcomeTitle, multiOutcomePositions)
               const isTopPick = idx === 0 // First one has most S-tier traders
 
-              // For multi-outcome events, link to event page on Polymarket
-              const polymarketUrl = eventInfo 
-                ? `https://polymarket.com/event/${eventInfo.eventSlug}`
+              // Same logic as Hot Markets - use market.eventSlug directly!
+              const polymarketUrl = market?.eventSlug 
+                ? `https://polymarket.com/event/${market.eventSlug}`
                 : `/api/redirect-market/${marketId}`
 
               return (
