@@ -16,6 +16,17 @@ function formatBalance(balance: number): string {
   }
 }
 
+// Format volume/liquidity for display
+function formatMoney(amount: number): string {
+  if (amount >= 1000000) {
+    return `$${(amount / 1000000).toFixed(1)}M`
+  } else if (amount >= 1000) {
+    return `$${(amount / 1000).toFixed(0)}K`
+  } else {
+    return `$${amount.toFixed(0)}`
+  }
+}
+
 export default function SmartMarketsPage() {
   const [pinnedMarkets, setPinnedMarkets] = useState<SmartMarketData[]>([])
   const [dynamicMarkets, setDynamicMarkets] = useState<SmartMarketData[]>([])
@@ -227,11 +238,11 @@ export default function SmartMarketsPage() {
                 </div>
                 <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">VOLUME</p>
-                  <p className="text-xl font-bold text-primary">${(market.volume / 1000).toFixed(0)}k</p>
+                  <p className="text-xl font-bold text-primary">{formatMoney(market.volume)}</p>
                 </div>
                 <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">LIQUIDITY</p>
-                  <p className="text-xl font-bold text-white">${(market.liquidity / 1000).toFixed(0)}k</p>
+                  <p className="text-xl font-bold text-white">{formatMoney(market.liquidity || 0)}</p>
                 </div>
                 <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">CATEGORY</p>
@@ -366,11 +377,11 @@ export default function SmartMarketsPage() {
                 </div>
                 <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">VOLUME</p>
-                  <p className="text-xl font-bold text-primary">${(market.volume / 1000).toFixed(0)}k</p>
+                  <p className="text-xl font-bold text-primary">{formatMoney(market.volume)}</p>
                 </div>
                 <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">LIQUIDITY</p>
-                  <p className="text-xl font-bold text-white">${(market.liquidity / 1000).toFixed(0)}k</p>
+                  <p className="text-xl font-bold text-white">{formatMoney(market.liquidity || 0)}</p>
                 </div>
                 <div className="bg-black/40 pixel-border border-white/20 p-3">
                   <p className="text-xs font-mono text-primary mb-1">CATEGORY</p>

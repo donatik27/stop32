@@ -308,6 +308,7 @@ app.get('/api/smart-markets', async (_req, res) => {
             question: true,
             category: true,
             volume: true,
+            liquidity: true,
             endDate: true,
             slug: true,
             eventSlug: true,
@@ -316,22 +317,40 @@ app.get('/api/smart-markets', async (_req, res) => {
       },
     });
 
-    const enriched = stats.map((stat: any) => ({
-      marketId: stat.marketId,
-      question: stat.market.question,
-      category: stat.market.category || 'Uncategorized',
-      volume: stat.market.volume ? Number(stat.market.volume) : 0,
-      endDate: stat.market.endDate,
-      smartCount: stat.smartCount,
-      smartWeighted: Number(stat.smartWeighted),
-      smartScore: Number(stat.smartScore),
-      topTraders: stat.topSmartTraders || [],
-      lastUpdate: stat.computedAt,
-      isPinned: stat.isPinned,
-      priority: stat.priority,
-      marketSlug: stat.market.slug,
-      eventSlug: stat.market.eventSlug,
-    }));
+    const enriched = stats.map((stat: any) => {
+      // Determine category from question if not provided
+      let category = stat.market.category || 'Market';
+      if (!stat.market.category || stat.market.category === 'Uncategorized') {
+        const q = stat.market.question.toLowerCase();
+        if (q.includes('trump') || q.includes('biden') || q.includes('election') || q.includes('president')) {
+          category = 'Politics';
+        } else if (q.includes('btc') || q.includes('eth') || q.includes('crypto') || q.includes('bitcoin')) {
+          category = 'Crypto';
+        } else if (q.includes('nba') || q.includes('nfl') || q.includes('sport') || q.includes('game')) {
+          category = 'Sports';
+        } else {
+          category = 'Market';
+        }
+      }
+      
+      return {
+        marketId: stat.marketId,
+        question: stat.market.question,
+        category,
+        volume: stat.market.volume ? Number(stat.market.volume) : 0,
+        liquidity: stat.market.liquidity ? Number(stat.market.liquidity) : 0,
+        endDate: stat.market.endDate,
+        smartCount: stat.smartCount,
+        smartWeighted: Number(stat.smartWeighted),
+        smartScore: Number(stat.smartScore),
+        topTraders: stat.topSmartTraders || [],
+        lastUpdate: stat.computedAt,
+        isPinned: stat.isPinned,
+        priority: stat.priority,
+        marketSlug: stat.market.slug,
+        eventSlug: stat.market.eventSlug,
+      };
+    });
 
     const uniqueMarkets = new Map<string, any>();
     for (const market of enriched) {
