@@ -83,8 +83,19 @@ app.get('/api/traders', async (_req, res) => {
       }
     }
 
+    // Sort: X traders first (by PnL), then regular traders
     const formattedTraders = Array.from(deduped.values())
-      .sort((a, b) => Number(b.totalPnl) - Number(a.totalPnl))
+      .sort((a, b) => {
+        const aHasTwitter = !!(a.twitterUsername && String(a.twitterUsername).trim());
+        const bHasTwitter = !!(b.twitterUsername && String(b.twitterUsername).trim());
+        
+        // X traders always come first
+        if (aHasTwitter && !bHasTwitter) return -1;
+        if (!aHasTwitter && bHasTwitter) return 1;
+        
+        // Within same group, sort by PnL
+        return Number(b.totalPnl) - Number(a.totalPnl);
+      })
       .slice(0, 1000)
       .map((t) => ({
         address: t.address,
