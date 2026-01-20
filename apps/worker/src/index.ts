@@ -46,14 +46,43 @@ async function main() {
   // );
   // logger.info('✅ [3/3] SYNC PUBLIC TRADERS queued (starts in 5 minutes)');
   
+  // 🧠 ALPHA MARKETS - Discover smart markets immediately
+  await queues.smartMarkets.add(
+    'discover-new-markets-immediate',
+    { type: 'discover-new-markets' },
+    { delay: 60000, priority: 1 } // Start in 1 minute (after leaderboard)
+  );
+  logger.info('✅ [2/4] Alpha Markets discovery queued (starts in 1 minute)');
+  
+  // 📌 Refresh pinned markets selection
+  await queues.smartMarkets.add(
+    'refresh-pinned-selection-immediate',
+    { type: 'refresh-pinned-selection' },
+    { delay: 120000, priority: 1 } // Start in 2 minutes (after discovery)
+  );
+  logger.info('✅ [3/4] Pinned markets refresh queued (starts in 2 minutes)');
+  
+  // 🎯 Multi-outcome analysis
+  await queues.smartMarkets.add(
+    'analyze-multi-outcome-immediate',
+    { type: 'analyze-multi-outcome' },
+    { delay: 180000, priority: 1 } // Start in 3 minutes
+  );
+  logger.info('✅ [4/4] Multi-outcome analysis queued (starts in 3 minutes)');
+  
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('⏰ Timeline:');
   logger.info('   NOW        → Leaderboard TOP-1000 (month only)');
-  logger.info('   CONTINUOUS → X traders (static list, 51+ curated)');
+  logger.info('   +1 min     → Alpha Markets discovery');
+  logger.info('   +2 min     → Pinned markets selection');
+  logger.info('   +3 min     → Multi-outcome analysis');
+  logger.info('   CONTINUOUS → X traders (static list, 115 curated)');
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('');
-  logger.info('💡 X TRADERS MODE: Static curated list (NO auto-discovery)');
-  logger.info('   (Markets & Smart Markets temporarily disabled)');
+  logger.info('💡 FULL SYSTEM MODE:');
+  logger.info('   ✅ Leaderboard (monthly)');
+  logger.info('   ✅ Alpha Markets (on-chain verified)');
+  logger.info('   ✅ Trader Radar (115 X traders)');
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.info('🎉 Worker is running!');
 }
