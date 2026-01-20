@@ -1,6 +1,7 @@
 import { JobData } from '../lib/queue';
 import { logger } from '../lib/logger';
 import prisma from '@polymarket/database';
+import { X_TRADERS_STATIC, getTwitterByAddress } from '@polymarket/shared';
 
 export async function handleIngestionJob(data: JobData) {
   switch (data.type) {
@@ -120,9 +121,15 @@ async function syncLeaderboard(payload: any) {
           lastActiveAt: new Date(),
         };
         
-        // CRITICAL: Only update twitterUsername if we have a value from API
-        // This prevents syncLeaderboard from erasing Twitter found by syncPublicTraders
-        if (t.xUsername) {
+        // Check if this trader is in static X traders list
+        const staticTwitter = getTwitterByAddress(address);
+        
+        if (staticTwitter) {
+          // X trader from static list - ALWAYS set twitterUsername
+          updateData.twitterUsername = staticTwitter;
+          updateData.tier = 'S'; // X traders are always S-tier
+        } else if (t.xUsername) {
+          // Trader has xUsername from API but not in static list - still save it
           updateData.twitterUsername = t.xUsername;
         }
         
@@ -132,8 +139,8 @@ async function syncLeaderboard(payload: any) {
             address,
             displayName: t.userName || `${t.proxyWallet?.slice(0, 6)}...`,
             profilePicture: profilePic,
-            twitterUsername: t.xUsername || null,
-            tier: assignTier(t, allTraders),
+            twitterUsername: staticTwitter || t.xUsername || null,
+            tier: staticTwitter ? 'S' : assignTier(t, allTraders),
             realizedPnl: t.pnl || 0,
             totalPnl: t.pnl || 0,
             tradeCount: marketsTraded,
@@ -215,13 +222,13 @@ async function syncLeaderboard(payload: any) {
 
 // Update manually added traders (always runs, overwrites existing locations)
 async function updateManualLocations() {
-  const MANUAL_UPDATES: Record<string, string> = {
-    '0xTrinity': 'Europe',
-    'Domahhhh': 'Ireland',
-    'failstonerPM': 'Canada',
-    'BitalikWuterin': 'Australasia',
-    'Foster': 'United States',
-  };
+  // Build map of traders with country from static X traders list
+  const tradersWithCountry = Object.entries(X_TRADERS_STATIC)
+    .filter(([_, data]) => data.country)
+    .reduce((acc, [twitter, data]) => {
+      acc[twitter] = data.country!;
+      return acc;
+    }, {} as Record<string, string>);
 
   const LOCATION_COORDS: Record<string, { lat: number; lon: number }> = {
     'Europe': { lat: 50.0, lon: 10.0 },
@@ -256,10 +263,10 @@ async function updateManualLocations() {
   };
 
   try {
-    logger.info(`🔄 Updating ${Object.keys(MANUAL_UPDATES).length} manually added traders...`);
+    logger.info(`🔄 Updating ${Object.keys(tradersWithCountry).length} manually added traders with geolocation...`);
     
     let updated = 0;
-    for (const [twitterUsername, country] of Object.entries(MANUAL_UPDATES)) {
+    for (const [twitterUsername, country] of Object.entries(tradersWithCountry)) {
       const coords = LOCATION_COORDS[country];
       if (!coords) {
         logger.warn({ twitterUsername, country }, 'Country coords not found');
