@@ -201,11 +201,8 @@ async function addGeolocation() {
     for (const trader of traders) {
       if (!trader.twitterUsername) continue;
       
-      // Check if location already exists
-      if (trader.latitude && trader.longitude) {
-        skipped++;
-        continue;
-      }
+      // FORCE UPDATE: Re-assign all traders to new city-based coordinates
+      // (Skip check to redistribute everyone from country centers to cities)
       
       // Find region for this Twitter username
       const region = TRADER_LOCATIONS[trader.twitterUsername];
