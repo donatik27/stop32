@@ -117,9 +117,9 @@ export async function GET(request: Request) {
         markets = dbMarkets.map((m: any) => ({
           marketId: m.marketId,
           question: m.question,
-          eventSlug: m.eventSlug,
-          eventTitle: m.eventTitle || null,
-          outcomeCount: m.outcomeCount || null,
+          eventSlug: m.eventSlug || null,
+          eventTitle: null, // Will be fetched from Polymarket if eventSlug exists
+          outcomeCount: null, // Will be fetched from Polymarket if eventSlug exists
           currentOdds: m.currentOdds || 0,
           volume: m.volume || 0,
           liquidity: m.liquidity || 0,
