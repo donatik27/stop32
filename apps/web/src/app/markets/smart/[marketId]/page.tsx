@@ -1068,15 +1068,15 @@ export default function SmartMarketDetailPage() {
                         <div className="text-muted-foreground">
                           Entry: {(trader.price * 100).toFixed(1)}%
                         </div>
-                        {market.currentOdds && (
+                        {(market as any).currentOdds && (
                           <>
                             <div className="text-primary">
-                              Now: {(market.currentOdds * 100).toFixed(1)}%
+                              Now: {((market as any).currentOdds * 100).toFixed(1)}%
                             </div>
                             {(() => {
                               const currentPrice = trader.outcome.toLowerCase() === 'yes' 
-                                ? market.currentOdds 
-                                : (1 - market.currentOdds)
+                                ? (market as any).currentOdds 
+                                : (1 - (market as any).currentOdds)
                               const pnlPercent = ((currentPrice - trader.price) / trader.price * 100)
                               const pnlPositive = pnlPercent > 0
                               return (
