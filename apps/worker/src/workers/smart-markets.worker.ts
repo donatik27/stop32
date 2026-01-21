@@ -277,13 +277,13 @@ async function discoverNewMarkets(payload: any) {
       select: { marketId: true }
     })).map(m => m.marketId);
     
-    const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=50&closed=false&order=volume&ascending=false');
+    const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=200&closed=false&order=volume&ascending=false');
     const allMarkets = await marketsRes.json();
     
     // Filter out pinned markets
     const markets = allMarkets.filter((m: any) => !pinnedMarketIds.includes(m.id));
     
-    logger.info(`📈 Analyzing ${markets.length} new markets...`);
+    logger.info(`📈 Analyzing ${markets.length} new markets (from ${allMarkets.length} total)...`);
     
     const client = createPublicClient({
       chain: polygon,
@@ -430,8 +430,8 @@ async function refreshPinnedSelection(payload: any) {
         const endDate = market.endDate ? new Date(market.endDate) : null;
         const daysUntilEnd = endDate ? (endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24) : 0;
         
-        // Must have at least 14 days until end
-        if (daysUntilEnd < 14) return null;
+        // Must have at least 7 days until end (was 14, too strict!)
+        if (daysUntilEnd < 7) return null;
         
         return {
           stat,
