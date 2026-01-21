@@ -274,10 +274,10 @@ export default function SmartMarketDetailPage() {
       console.log(`   - eventSlug state: ${eventSlug}`)
       console.log(`   - foundMarket.eventSlug: ${foundMarket.eventSlug}`)
       
-      // ALWAYS search Polymarket API directly (don't rely on DB)
+      // ALWAYS search Polymarket API via our proxy (avoids CORS)
       try {
-        console.log(`📡 Fetching market ${marketId} from Polymarket API...`)
-        const polyMarketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`)
+        console.log(`📡 Fetching market ${marketId} via proxy...`)
+        const polyMarketRes = await fetch(`/api/polymarket/markets/${marketId}`)
         if (polyMarketRes.ok) {
           const polyMarket = await polyMarketRes.json()
           console.log(`✅ Got market data. negRiskMarketID: ${polyMarket.negRiskMarketID}`)
@@ -287,7 +287,7 @@ export default function SmartMarketDetailPage() {
             console.log(`🔍 This is a neg-risk market! Searching for parent event...`)
             
             // Search through events to find matching one
-            const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=500')
+            const eventsRes = await fetch('/api/polymarket/events?limit=500')
             if (eventsRes.ok) {
               const events = await eventsRes.json()
               console.log(`📊 Loaded ${events.length} events from Polymarket`)
@@ -319,11 +319,11 @@ export default function SmartMarketDetailPage() {
         console.error('❌ Failed to search for event:', error)
       }
 
-      // Fetch event info directly from Polymarket if we have event slug
+      // Fetch event info via proxy if we have event slug
       if (finalEventSlug) {
         try {
           console.log(`📡 Fetching event info for: ${finalEventSlug}`)
-          const eventRes = await fetch(`https://gamma-api.polymarket.com/events?slug=${finalEventSlug}`)
+          const eventRes = await fetch(`/api/polymarket/events?slug=${finalEventSlug}`)
           if (eventRes.ok) {
             const events = await eventRes.json()
             const event = events && events[0]
