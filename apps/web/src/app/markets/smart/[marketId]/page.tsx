@@ -270,7 +270,7 @@ export default function SmartMarketDetailPage() {
       // Try to find event slug (from DB or by searching Polymarket directly)
       let finalEventSlug = eventSlug || foundMarket.eventSlug
       
-      console.log(`🔍 Market ${marketId}: Looking for event slug...`)
+      console.log(`🔍 [${new Date().toISOString()}] Market ${marketId}: Looking for event slug...`)
       console.log(`   - eventSlug state: ${eventSlug}`)
       console.log(`   - foundMarket.eventSlug: ${foundMarket.eventSlug}`)
       
