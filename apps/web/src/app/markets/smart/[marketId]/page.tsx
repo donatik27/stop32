@@ -1061,7 +1061,14 @@ export default function SmartMarketDetailPage() {
                           trader.outcome.toLowerCase() === 'no' ? 'bg-red-500 text-white' :
                           'bg-primary text-black'
                         }`}>
-                          {trader.outcome}
+                          {(() => {
+                            // Extract team name from question for YES positions
+                            if (trader.outcome.toLowerCase() === 'yes') {
+                              const teamName = extractOutcomeShortName(market.question, [])
+                              return teamName || trader.outcome
+                            }
+                            return trader.outcome
+                          })()}
                         </span>
                       </div>
                       <div className="text-xs space-y-0.5 mb-1">
