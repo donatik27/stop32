@@ -103,8 +103,8 @@ export default function HeartbeatMonitor({
       ctx.shadowColor = color
       ctx.beginPath()
 
-      const centerY = height / 2
-      const scale = height * 0.35 // Slightly bigger amplitude
+      const centerY = height * 0.55 // Lower center (55% from top instead of 50%)
+      const scale = height * 0.30 // Reduced amplitude so spike fits
 
       // Draw with interpolation for smoother curve
       for (let x = 0; x < width; x++) {
@@ -179,12 +179,12 @@ export default function HeartbeatMonitor({
         <div className="text-primary/50 font-mono text-[10px] text-center tracking-wider">BPM</div>
       </div>
 
-      {/* Canvas - BIGGER! */}
+      {/* Canvas - MASSIVE! */}
       <canvas
         ref={canvasRef}
-        width={800}
-        height={220}
-        className="w-full h-[220px]"
+        width={1000}
+        height={300}
+        className="w-full h-[300px]"
         style={{ imageRendering: 'crisp-edges' }}
       />
 

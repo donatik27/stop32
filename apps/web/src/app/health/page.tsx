@@ -79,10 +79,10 @@ export default function HealthPage() {
         </p>
       </div>
 
-      {/* Main Monitor */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* ECG Monitor - Takes 2 columns */}
-        <div className="lg:col-span-2">
+      {/* Main Monitor - ECG FULL WIDTH! */}
+      <div className="mb-6">
+        {/* ECG Monitor - HERO SECTION */}
+        <div className="relative">
           <HeartbeatMonitor 
             bpm={vitals?.vitals.heartbeat.bpm || 75}
             label="POLYMARKET_PULSE"
@@ -90,27 +90,43 @@ export default function HealthPage() {
           />
           
           {/* Volume Display under ECG */}
-          <div className="mt-4 bg-black border-2 border-primary/30 rounded-sm p-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="mt-4 bg-black border-2 border-primary/30 rounded-sm p-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <div className="text-primary/50 text-xs mb-1">24H_VOLUME</div>
-                <div className="text-primary text-2xl font-bold tabular-nums">
+                <div className="text-primary/50 text-xs mb-1 uppercase tracking-wider">24H_VOLUME</div>
+                <div className="text-primary text-3xl font-bold tabular-nums">
                   ${((vitals?.vitals.heartbeat.volume24h || 0) / 1_000_000).toFixed(2)}M
                 </div>
               </div>
               <div>
-                <div className="text-primary/50 text-xs mb-1">CHANGE_24H</div>
-                <div className="text-green-400 text-2xl font-bold">
+                <div className="text-primary/50 text-xs mb-1 uppercase tracking-wider">CHANGE_24H</div>
+                <div className="text-green-400 text-3xl font-bold">
                   {vitals?.vitals.heartbeat.volumeChange || '+0%'}
+                </div>
+              </div>
+              <div>
+                <div className="text-primary/50 text-xs mb-1 uppercase tracking-wider">HEARTBEAT</div>
+                <div className="text-primary text-3xl font-bold tabular-nums">
+                  {vitals?.vitals.heartbeat.bpm || 0} <span className="text-xl text-primary/50">BPM</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-primary/50 text-xs mb-1 uppercase tracking-wider">STATUS</div>
+                <div className="text-green-400 text-3xl font-bold">
+                  LIVE
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Secondary Stats Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
 
         {/* Vital Signs Panel */}
-        <div className="bg-black border-2 border-primary/30 rounded-sm p-4">
-          <div className="text-primary text-sm mb-4 border-b border-primary/30 pb-2">
+        <div className="bg-black border-2 border-primary/30 rounded-sm p-4 lg:col-span-1">
+          <div className="text-primary text-sm mb-4 border-b border-primary/30 pb-2 uppercase tracking-wider">
             VITAL_SIGNS
           </div>
           
@@ -175,10 +191,8 @@ export default function HealthPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Performance Metrics - In same grid! */}
         {/* API Response */}
         <div className="bg-black border-2 border-primary/30 rounded-sm p-4 hover:border-primary/60 transition-all group">
           <div className="flex items-center gap-2 mb-3">
