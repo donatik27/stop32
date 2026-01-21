@@ -4,19 +4,39 @@ import { logger } from './lib/logger';
 
 // City coordinates for better distribution (not country centers!)
 const CITY_COORDS: Record<string, { lat: number; lon: number; name: string }> = {
-  // USA Cities - spread across the country
-  'US_NYC': { lat: 40.7128, lon: -74.0060, name: 'New York' },
+  // USA Cities - BALANCED across all regions (West, Central, East, South)
+  // West Coast
   'US_LA': { lat: 34.0522, lon: -118.2437, name: 'Los Angeles' },
-  'US_CHICAGO': { lat: 41.8781, lon: -87.6298, name: 'Chicago' },
-  'US_MIAMI': { lat: 25.7617, lon: -80.1918, name: 'Miami' },
-  'US_HOUSTON': { lat: 29.7604, lon: -95.3698, name: 'Houston' },
   'US_SF': { lat: 37.7749, lon: -122.4194, name: 'San Francisco' },
   'US_SEATTLE': { lat: 47.6062, lon: -122.3321, name: 'Seattle' },
+  'US_PORTLAND': { lat: 45.5152, lon: -122.6784, name: 'Portland' },
+  'US_SANDIEGO': { lat: 32.7157, lon: -117.1611, name: 'San Diego' },
+  'US_PHOENIX': { lat: 33.4484, lon: -112.0740, name: 'Phoenix' },
+  'US_VEGAS': { lat: 36.1699, lon: -115.1398, name: 'Las Vegas' },
+  
+  // Central
+  'US_CHICAGO': { lat: 41.8781, lon: -87.6298, name: 'Chicago' },
+  'US_DENVER': { lat: 39.7392, lon: -104.9903, name: 'Denver' },
+  'US_DALLAS': { lat: 32.7767, lon: -96.7970, name: 'Dallas' },
+  'US_AUSTIN': { lat: 30.2672, lon: -97.7431, name: 'Austin' },
+  'US_MINNEAPOLIS': { lat: 44.9778, lon: -93.2650, name: 'Minneapolis' },
+  'US_KANSASCITY': { lat: 39.0997, lon: -94.5786, name: 'Kansas City' },
+  
+  // East Coast
+  'US_NYC': { lat: 40.7128, lon: -74.0060, name: 'New York' },
   'US_BOSTON': { lat: 42.3601, lon: -71.0589, name: 'Boston' },
   'US_DC': { lat: 38.9072, lon: -77.0369, name: 'Washington DC' },
+  'US_PHILLY': { lat: 39.9526, lon: -75.1652, name: 'Philadelphia' },
+  'US_BALTIMORE': { lat: 39.2904, lon: -76.6122, name: 'Baltimore' },
+  'US_PITTSBURGH': { lat: 40.4406, lon: -79.9959, name: 'Pittsburgh' },
+  
+  // South
+  'US_MIAMI': { lat: 25.7617, lon: -80.1918, name: 'Miami' },
   'US_ATLANTA': { lat: 33.7490, lon: -84.3880, name: 'Atlanta' },
-  'US_PHOENIX': { lat: 33.4484, lon: -112.0740, name: 'Phoenix' },
-  'US_DENVER': { lat: 39.7392, lon: -104.9903, name: 'Denver' },
+  'US_HOUSTON': { lat: 29.7604, lon: -95.3698, name: 'Houston' },
+  'US_NASHVILLE': { lat: 36.1627, lon: -86.7816, name: 'Nashville' },
+  'US_NEWORLEANS': { lat: 29.9511, lon: -90.0715, name: 'New Orleans' },
+  'US_CHARLOTTE': { lat: 35.2271, lon: -80.8431, name: 'Charlotte' },
   
   // Europe Cities - spread across continent
   'EU_LONDON': { lat: 51.5074, lon: -0.1278, name: 'London' },
@@ -80,9 +100,19 @@ const CITY_COORDS: Record<string, { lat: number; lon: number; name: string }> = 
   'IRELAND_DUBLIN': { lat: 53.3498, lon: -6.2603, name: 'Dublin' },
 };
 
-// Region to city pools (for random distribution)
+// Region to city pools (BALANCED distribution across USA)
 const REGION_CITY_POOLS: Record<string, string[]> = {
-  'United States': ['US_NYC', 'US_LA', 'US_CHICAGO', 'US_MIAMI', 'US_HOUSTON', 'US_SF', 'US_SEATTLE', 'US_BOSTON', 'US_DC', 'US_ATLANTA', 'US_PHOENIX', 'US_DENVER'],
+  // USA: Spread across West Coast, East Coast, Central, South (NOT random - sequential for balance!)
+  'United States': [
+    // West Coast (4 cities)
+    'US_LA', 'US_SF', 'US_SEATTLE', 'US_PORTLAND',
+    // Central (4 cities)
+    'US_CHICAGO', 'US_DENVER', 'US_DALLAS', 'US_AUSTIN',
+    // East Coast (4 cities)
+    'US_NYC', 'US_BOSTON', 'US_DC', 'US_PHILLY',
+    // South (4 cities)
+    'US_MIAMI', 'US_ATLANTA', 'US_HOUSTON', 'US_NASHVILLE',
+  ],
   'Europe': ['EU_LONDON', 'EU_PARIS', 'EU_BERLIN', 'EU_MADRID', 'EU_ROME', 'EU_AMSTERDAM', 'EU_BARCELONA', 'EU_MUNICH', 'EU_VIENNA', 'EU_ZURICH'],
   'United Kingdom': ['UK_LONDON', 'UK_MANCHESTER', 'UK_EDINBURGH'],
   'Germany': ['GERMANY_BERLIN', 'GERMANY_MUNICH'],
@@ -198,6 +228,9 @@ async function addGeolocation() {
     let updated = 0;
     let skipped = 0;
     
+    // Track how many traders assigned per region (for sequential distribution)
+    const regionCounters: Record<string, number> = {};
+    
     for (const trader of traders) {
       if (!trader.twitterUsername) continue;
       
@@ -219,9 +252,15 @@ async function addGeolocation() {
         continue;
       }
       
-      // Pick random city from pool
-      const randomCity = cityPool[Math.floor(Math.random() * cityPool.length)];
-      const cityCoords = CITY_COORDS[randomCity];
+      // SEQUENTIAL distribution: pick next city in rotation (not random!)
+      if (!regionCounters[region]) {
+        regionCounters[region] = 0;
+      }
+      const cityIndex = regionCounters[region] % cityPool.length;
+      const selectedCity = cityPool[cityIndex];
+      regionCounters[region]++;
+      
+      const cityCoords = CITY_COORDS[selectedCity];
       
       if (!cityCoords) {
         logger.warn({ username: trader.twitterUsername, city: randomCity }, 'Unknown city');
