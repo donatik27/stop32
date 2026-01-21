@@ -267,46 +267,103 @@ export default function SmartMarketDetailPage() {
 
       setMarket(foundMarket)
 
-      // Only fetch event slug if not already set from database
-      let finalEventSlug = eventSlug
+      // Try to find event slug (from DB or by searching Polymarket directly)
+      let finalEventSlug = eventSlug || foundMarket.eventSlug
+      
+      // If no eventSlug yet, search Polymarket API directly
       if (!finalEventSlug) {
         try {
-          const eventRes = await fetch(`/api/event-by-market?marketId=${marketId}&question=${encodeURIComponent(foundMarket.question)}`)
-          if (eventRes.ok) {
-            const data = await eventRes.json()
-            finalEventSlug = data?.eventSlug || null
-            setEventSlug(finalEventSlug)
-            console.log(`Event slug from API fallback: ${finalEventSlug}`)
+          // Fetch market details from Polymarket to get negRiskMarketID
+          const polyMarketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`)
+          if (polyMarketRes.ok) {
+            const polyMarket = await polyMarketRes.json()
+            
+            // If it's a neg-risk market (multi-outcome), find parent event
+            if (polyMarket.negRiskMarketID) {
+              console.log(`🔍 Searching for event with negRiskMarketID: ${polyMarket.negRiskMarketID}`)
+              
+              // Search through events to find matching one
+              const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=500')
+              if (eventsRes.ok) {
+                const events = await eventsRes.json()
+                for (const event of events) {
+                  if (event.markets && Array.isArray(event.markets)) {
+                    const hasMatch = event.markets.some((m: any) => 
+                      m.id === marketId || m.negRiskMarketID === polyMarket.negRiskMarketID
+                    )
+                    if (hasMatch) {
+                      finalEventSlug = event.slug
+                      setEventSlug(finalEventSlug)
+                      console.log(`✅ Found event: ${event.title} (${finalEventSlug})`)
+                      break
+                    }
+                  }
+                }
+              }
+            }
           }
         } catch (error) {
-          console.error('Failed to fetch event slug:', error)
+          console.error('Failed to search for event:', error)
         }
       }
 
-      // Fetch event info and multi-outcome positions if we have an event slug
+      // Fetch event info directly from Polymarket if we have event slug
       if (finalEventSlug) {
         try {
-          // Fetch event info (top 10 outcomes)
-          const eventRes = await fetch(`/api/event-info?eventSlug=${finalEventSlug}`)
+          // Fetch event details directly from Polymarket API
+          const eventRes = await fetch(`https://gamma-api.polymarket.com/events?slug=${finalEventSlug}`)
           if (eventRes.ok) {
-            const eventData = await eventRes.json()
+            const events = await eventRes.json()
+            const event = events && events[0]
             
-            // Always set eventInfo if we have valid data
-            // (Link should always work for multi-outcome events)
-            if (eventData.eventSlug && eventData.topOutcomes && eventData.topOutcomes.length > 0) {
-              setEventInfo(eventData)
-              console.log(`✅ Multi-outcome event: ${eventData.eventTitle} (${eventData.topOutcomes.length} top outcomes)`)
+            if (event && event.markets && event.markets.length > 0) {
+              // Parse all outcomes and sort by price (descending)
+              const outcomes = event.markets
+                .filter((m: any) => !m.closed) // Only active markets
+                .map((m: any) => {
+                  const price = m.outcomePrices && m.outcomePrices[0] 
+                    ? parseFloat(m.outcomePrices[0]) 
+                    : 0
+                  const volume = m.volume ? parseFloat(m.volume) : 0
+                  
+                  return {
+                    id: m.id,
+                    question: m.question,
+                    price,
+                    volume
+                  }
+                })
+                .sort((a: any, b: any) => b.price - a.price)
+                .slice(0, 10) // Top 10
+              
+              if (outcomes.length > 0) {
+                const eventData = {
+                  eventSlug: event.slug,
+                  eventTitle: event.title,
+                  eventDescription: event.description || '',
+                  eventImage: event.image || '',
+                  totalVolume: parseFloat(event.volume || '0'),
+                  topOutcomes: outcomes
+                }
+                
+                setEventInfo(eventData)
+                console.log(`✅ Multi-outcome event: ${eventData.eventTitle} (${outcomes.length} top outcomes)`)
+              }
             }
           }
           
-          // Fetch smart trader positions
-          const multiRes = await fetch(`/api/multi-outcome-positions?eventSlug=${finalEventSlug}`)
-          if (multiRes.ok) {
-            const data = await multiRes.json()
-            if (data.outcomes && data.outcomes.length > 0) {
-              setMultiOutcomePositions(data.outcomes)
-              console.log(`✅ Loaded ${data.outcomes.length} multi-outcome positions`)
+          // Still try to fetch smart trader positions from our API
+          try {
+            const multiRes = await fetch(`/api/multi-outcome-positions?eventSlug=${finalEventSlug}`)
+            if (multiRes.ok) {
+              const data = await multiRes.json()
+              if (data.outcomes && data.outcomes.length > 0) {
+                setMultiOutcomePositions(data.outcomes)
+                console.log(`✅ Loaded ${data.outcomes.length} multi-outcome positions`)
+              }
             }
+          } catch (e) {
+            console.warn('Could not fetch multi-outcome positions:', e)
           }
         } catch (error) {
           console.error('Failed to fetch event data:', error)
@@ -718,35 +775,31 @@ export default function SmartMarketDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(Array.isArray(market.outcomes) ? market.outcomes : ['YES', 'NO']).map((outcome, idx) => {
-              let price = 0.5
-              if (market.outcomePrices?.[idx]) {
-                const parsed = parseFloat(market.outcomePrices[idx])
-                price = isNaN(parsed) ? 0.5 : parsed
-              }
-              const percentage = (price * 100).toFixed(1)
-              const isYes = outcome.toLowerCase() === 'yes'
-              const isNo = outcome.toLowerCase() === 'no'
+            {/* Show event outcomes if multi-outcome, otherwise show binary YES/NO */}
+            {eventInfo && eventInfo.topOutcomes && eventInfo.topOutcomes.length > 0 ? (
+              // Multi-outcome event: Show teams/candidates
+              eventInfo.topOutcomes.map((outcome: any, idx: number) => {
+                const price = outcome.price || 0
+                const percentage = (price * 100).toFixed(1)
+                
+                // Extract clean name from question (e.g., "Will Barcelona win?" -> "Barcelona")
+                let cleanName = outcome.question
+                const teamMatch = outcome.question.match(/Will\s+(?:the\s+)?(.+?)\s+(?:win|make|reach|qualify)/i)
+                if (teamMatch) {
+                  cleanName = teamMatch[1].trim()
+                }
 
-              return (
-                <div
-                  key={idx}
-                  className={`bg-black/40 pixel-border p-6 hover:scale-105 transition-all ${
-                    isYes ? 'border-green-500/50 hover:border-green-500' :
-                    isNo ? 'border-red-500/50 hover:border-red-500' :
-                    'border-white/20 hover:border-white/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className={`text-lg font-bold ${
-                      isYes ? 'text-green-500' :
-                      isNo ? 'text-red-500' :
-                      'text-white'
-                    }`}>
-                      {outcome}
-                    </h3>
-                    <span className="text-xs text-muted-foreground">#{idx + 1}</span>
-                  </div>
+                return (
+                  <div
+                    key={outcome.id}
+                    className="bg-black/40 pixel-border p-6 hover:scale-105 transition-all border-white/20 hover:border-primary"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-bold text-white">
+                        {cleanName}
+                      </h3>
+                      <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                    </div>
 
                   <div className="mb-3">
                     <div className="text-4xl font-bold text-white mb-1">
@@ -760,17 +813,69 @@ export default function SmartMarketDetailPage() {
                   {/* Progress bar */}
                   <div className="w-full bg-black/60 h-2 pixel-border border-white/10 overflow-hidden">
                     <div 
-                      className={`h-full ${
-                        isYes ? 'bg-green-500' :
-                        isNo ? 'bg-red-500' :
-                        'bg-primary'
-                      }`}
+                      className="h-full bg-primary"
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
                 </div>
-              )
-            })}
+                )
+              })
+            ) : (
+              // Binary market: Show YES/NO
+              (Array.isArray(market.outcomes) ? market.outcomes : ['YES', 'NO']).map((outcome, idx) => {
+                let price = 0.5
+                if (market.outcomePrices?.[idx]) {
+                  const parsed = parseFloat(market.outcomePrices[idx])
+                  price = isNaN(parsed) ? 0.5 : parsed
+                }
+                const percentage = (price * 100).toFixed(1)
+                const isYes = outcome.toLowerCase() === 'yes'
+                const isNo = outcome.toLowerCase() === 'no'
+
+                return (
+                  <div
+                    key={idx}
+                    className={`bg-black/40 pixel-border p-6 hover:scale-105 transition-all ${
+                      isYes ? 'border-green-500/50 hover:border-green-500' :
+                      isNo ? 'border-red-500/50 hover:border-red-500' :
+                      'border-white/20 hover:border-white/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className={`text-lg font-bold ${
+                        isYes ? 'text-green-500' :
+                        isNo ? 'text-red-500' :
+                        'text-white'
+                      }`}>
+                        {outcome}
+                      </h3>
+                      <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="text-4xl font-bold text-white mb-1">
+                        {percentage}%
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        ${price.toFixed(4)} per share
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full bg-black/60 h-2 pixel-border border-white/10 overflow-hidden">
+                      <div 
+                        className={`h-full ${
+                          isYes ? 'bg-green-500' :
+                          isNo ? 'bg-red-500' :
+                          'bg-primary'
+                        }`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
       )}
