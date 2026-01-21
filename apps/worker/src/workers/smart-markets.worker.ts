@@ -165,7 +165,8 @@ async function findEventSlug(market: any): Promise<string | null> {
   try {
     // Try to find event by searching with market details
     if (market.negRiskMarketID) {
-      const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=200&closed=false');
+      // Search in active events (closed=false) and recent closed events
+      const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=500');
       if (eventsRes.ok) {
         const events = await eventsRes.json();
         for (const event of events) {
@@ -174,12 +175,14 @@ async function findEventSlug(market: any): Promise<string | null> {
               m.id === market.id || m.negRiskMarketID === market.negRiskMarketID
             );
             if (hasMatch) {
+              logger.info(`✅ Found event "${event.title}" (${event.slug}) for market ${market.id}`);
               return event.slug;
             }
           }
         }
       }
     }
+    logger.warn(`⚠️  No event found for market ${market.id} (negRiskMarketID: ${market.negRiskMarketID})`);
   } catch (error) {
     logger.warn({ error, marketId: market.id }, 'Failed to find event slug');
   }
