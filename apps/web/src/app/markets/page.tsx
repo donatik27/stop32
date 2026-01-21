@@ -159,12 +159,12 @@ export default function MarketsPage() {
             </thead>
             <tbody>
               {currentMarkets.map((market: any, idx) => {
-                // Generate Polymarket URL (prefer eventSlug, fallback to market slug)
+                // Generate Polymarket URL (prefer eventSlug, fallback to market slug) + referral
                 const polymarketUrl = market.eventSlug
-                  ? `https://polymarket.com/event/${market.eventSlug}`
+                  ? `https://polymarket.com/event/${market.eventSlug}?via=01k`
                   : market.slug
-                    ? `https://polymarket.com/market/${market.slug}`
-                    : `https://polymarket.com` // Ultimate fallback
+                    ? `https://polymarket.com/market/${market.slug}?via=01k`
+                    : `https://polymarket.com?via=01k` // Ultimate fallback
                 
                 return (
                   <tr 

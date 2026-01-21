@@ -716,6 +716,11 @@ app.get('/api/redirect-market/:marketId', async (req, res) => {
       return res.redirect(`https://polymarket.com/event/${market.eventSlug}?via=01k`);
     }
 
+    // Fallback to market.slug if available (faster than fetching from API)
+    if (market?.slug) {
+      return res.redirect(`https://polymarket.com/market/${market.slug}?via=01k`);
+    }
+
     const marketRes = await fetch(`https://gamma-api.polymarket.com/markets/${marketId}`);
     if (!marketRes.ok) {
       return res.redirect('https://polymarket.com?via=01k');

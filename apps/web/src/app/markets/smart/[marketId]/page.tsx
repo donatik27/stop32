@@ -430,10 +430,10 @@ export default function SmartMarketDetailPage() {
           {/* Polymarket Link - Same logic as Hot Markets! */}
           <a
             href={market?.eventSlug 
-              ? `https://polymarket.com/event/${market.eventSlug}` 
+              ? `https://polymarket.com/event/${market.eventSlug}?via=01k` 
               : market?.slug
-                ? `https://polymarket.com/market/${market.slug}`
-                : `https://polymarket.com` // Ultimate fallback
+                ? `https://polymarket.com/market/${market.slug}?via=01k`
+                : `https://polymarket.com?via=01k` // Ultimate fallback
             }
             target="_blank"
             rel="noopener noreferrer"
@@ -543,10 +543,10 @@ export default function SmartMarketDetailPage() {
 
               // Same logic as Hot Markets - use market.eventSlug or slug directly!
               const polymarketUrl = market?.eventSlug 
-                ? `https://polymarket.com/event/${market.eventSlug}`
+                ? `https://polymarket.com/event/${market.eventSlug}?via=01k`
                 : market?.slug
-                  ? `https://polymarket.com/market/${market.slug}`
-                  : `https://polymarket.com` // Ultimate fallback
+                  ? `https://polymarket.com/market/${market.slug}?via=01k`
+                  : `https://polymarket.com?via=01k` // Ultimate fallback
 
               return (
                 <a
