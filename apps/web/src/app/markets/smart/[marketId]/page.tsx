@@ -225,7 +225,7 @@ export default function SmartMarketDetailPage() {
         foundMarket = {
           id: smartMarket.marketId,
           question: smartMarket.question,
-          slug: (smartMarket as any).slug || null,
+          slug: (smartMarket as any).marketSlug || null, // ✅ API returns 'marketSlug' not 'slug'
           eventSlug: dbEventSlug || null, // ✅ Add eventSlug to market object (same as Hot Markets!)
           category: smartMarket.category,
           volume: smartMarket.volume,
@@ -431,7 +431,9 @@ export default function SmartMarketDetailPage() {
           <a
             href={market?.eventSlug 
               ? `https://polymarket.com/event/${market.eventSlug}` 
-              : `/api/redirect-market/${marketId}`
+              : market?.slug
+                ? `https://polymarket.com/market/${market.slug}`
+                : `https://polymarket.com` // Ultimate fallback
             }
             target="_blank"
             rel="noopener noreferrer"
@@ -539,10 +541,12 @@ export default function SmartMarketDetailPage() {
               const shortName = extractOutcomeShortName(outcome.outcomeTitle, multiOutcomePositions)
               const isTopPick = idx === 0 // First one has most S-tier traders
 
-              // Same logic as Hot Markets - use market.eventSlug directly!
+              // Same logic as Hot Markets - use market.eventSlug or slug directly!
               const polymarketUrl = market?.eventSlug 
                 ? `https://polymarket.com/event/${market.eventSlug}`
-                : `/api/redirect-market/${marketId}`
+                : market?.slug
+                  ? `https://polymarket.com/market/${market.slug}`
+                  : `https://polymarket.com` // Ultimate fallback
 
               return (
                 <a
