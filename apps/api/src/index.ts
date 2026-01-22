@@ -710,11 +710,11 @@ app.get('/api/trader/:address/positions', async (req, res) => {
       return res.json([]);
     }
     
-    const positionsData = await positionsRes.json();
+    const positionsData = await positionsRes.json() as any;
     
     // Transform positions to include market info
     const positions = await Promise.all(
-      (positionsData.data || []).slice(0, 10).map(async (pos: any) => {
+      ((positionsData.data || []) as any[]).slice(0, 10).map(async (pos: any) => {
         try {
           // Fetch market details from gamma API
           const marketRes = await fetch(
@@ -782,7 +782,7 @@ app.get('/api/trader/:address/activity', async (req, res) => {
       });
     }
     
-    const trades = await tradesRes.json();
+    const trades = await tradesRes.json() as any[];
     
     // Calculate stats
     const lastTrade = trades.length > 0 ? trades[0].timestamp : null;
