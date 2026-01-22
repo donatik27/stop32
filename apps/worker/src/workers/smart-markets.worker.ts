@@ -99,7 +99,7 @@ async function updatePinnedMarkets(payload: any) {
       }
     });
     
-    // FIX 2: Increased to TOP-300 traders (was 200) for better market coverage
+ну     // FIX 2: Increased to TOP-300 traders (was 200) for better market coverage
     const smartTraders = allTraders
       .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
       .slice(0, 300);
@@ -558,26 +558,43 @@ async function analyzeMarket(client: any, market: any, traders: any[]) {
     args: [calls]
   });
   
-  // Parse results
+  // Parse results - track YES vs NO positions separately
   const tradersWithPositions = [];
   let callIndex = 0;
   
+  // Get current prices for entry price estimation
+  const outcomePrices = market.outcomePrices 
+    ? (typeof market.outcomePrices === 'string' 
+        ? JSON.parse(market.outcomePrices) 
+        : market.outcomePrices)
+    : ['0.5', '0.5'];
+  const yesPrice = parseFloat(outcomePrices[0] || '0.5');
+  const noPrice = parseFloat(outcomePrices[1] || '0.5');
+  
   for (const trader of traders) {
-    let hasPosition = false;
-    let totalBalance = 0;
+    // Read YES and NO balances separately
+    const yesBalance = results[1][callIndex] 
+      ? Number(formatUnits(BigInt(results[1][callIndex] as string), 6)) 
+      : 0;
+    callIndex++;
     
-    for (const tokenId of tokenIds) {
-      const returnData = results[1][callIndex];
-      const balance = returnData ? Number(formatUnits(BigInt(returnData as string), 6)) : 0;
-      totalBalance += balance;
-      if (balance > 0) hasPosition = true;
-      callIndex++;
-    }
+    const noBalance = results[1][callIndex] 
+      ? Number(formatUnits(BigInt(results[1][callIndex] as string), 6)) 
+      : 0;
+    callIndex++;
     
-    if (hasPosition) {
+    // Determine position side (dominant balance)
+    if (yesBalance > 0 || noBalance > 0) {
+      const side = yesBalance > noBalance ? 'YES' : 'NO';
+      const shares = Math.max(yesBalance, noBalance);
+      const entryPrice = side === 'YES' ? yesPrice : noPrice;
+      
       tradersWithPositions.push({
         ...trader,
-        balance: totalBalance
+        side,           // ✅ YES or NO
+        shares,         // ✅ Number of shares
+        entryPrice,     // ✅ Current price (approximation)
+        balance: yesBalance + noBalance  // Keep total for backwards compatibility
       });
     }
   }

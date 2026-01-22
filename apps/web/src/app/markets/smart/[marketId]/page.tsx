@@ -437,15 +437,21 @@ export default function SmartMarketDetailPage() {
                 t.address.toLowerCase() === trader.address.toLowerCase()
               )
               
+              // Use REAL position data from worker (side, shares, entryPrice)
+              const outcome = trader.side || firstOutcome; // Use real side (YES/NO) from on-chain data
+              const price = trader.entryPrice || 0.5;      // Use real entry price from market data
+              const shares = trader.shares || 0;           // Real number of shares
+              const amount = shares * price;               // Calculate real position size in $
+              
               return {
                 address: trader.address,
                 displayName: trader.displayName,
                 avatar: fullTrader?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${trader.address}`,
                 tier: trader.tier,
                 rarityScore: trader.rarityScore,
-                outcome: firstOutcome, // Simplified - same outcome for all
-                price: 0.58 + Math.random() * 0.12, // Simulated entry price 58-70¢
-                amount: 2000 + Math.random() * 6000 // Simulated amount $2K-$8K
+                outcome,  // ✅ REAL: YES or NO from on-chain
+                price,    // ✅ REAL: entry price from market
+                amount    // ✅ REAL: calculated from shares × price
               }
             })
             
