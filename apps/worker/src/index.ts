@@ -121,3 +121,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// Force rebuild Thu Jan 22 14:48:15 CET 2026
