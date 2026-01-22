@@ -280,8 +280,38 @@ async function discoverNewMarkets(payload: any) {
     const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=200&closed=false&order=volume&ascending=false');
     const allMarkets = await marketsRes.json();
     
-    // Filter out pinned markets
-    const markets = allMarkets.filter((m: any) => !pinnedMarketIds.includes(m.id));
+    // Filter out:
+    // 1. Pinned markets (already tracked separately)
+    // 2. Closed/resolved markets
+    // 3. Markets with 99%+ price (already decided)
+    // 4. Markets with endDate in the past
+    const now = Date.now();
+    const markets = allMarkets.filter((m: any) => {
+      // Skip pinned markets
+      if (pinnedMarketIds.includes(m.id)) return false;
+      
+      // Skip closed markets
+      if (m.closed) return false;
+      
+      // Skip markets where endDate has passed
+      if (m.endDate) {
+        const endDate = new Date(m.endDate).getTime();
+        if (endDate < now) {
+          return false;
+        }
+      }
+      
+      // Skip markets with extreme prices (99%+ = already resolved)
+      if (m.outcomePrices && Array.isArray(m.outcomePrices)) {
+        const prices = m.outcomePrices.map((p: string) => parseFloat(p));
+        const hasExtremePrice = prices.some((p: number) => p >= 0.99 || p <= 0.01);
+        if (hasExtremePrice) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
     
     logger.info(`📈 Analyzing ${markets.length} new markets (from ${allMarkets.length} total)...`);
     

@@ -315,6 +315,12 @@ app.get('/api/smart-markets', async (_req, res) => {
         computedAt: {
           gte: new Date(Date.now() - 48 * 60 * 60 * 1000),
         },
+        market: {
+          status: 'OPEN',  // ✅ Only OPEN markets, not CLOSED or RESOLVED
+          endDate: {
+            gte: new Date()  // ✅ Only markets with future endDate
+          }
+        }
       },
       orderBy: [{ smartScore: 'desc' }, { smartCount: 'desc' }],
       take: 20,
@@ -413,7 +419,20 @@ app.get('/api/smart-markets', async (_req, res) => {
       }
     });
 
-    res.json(deduplicated);
+    // ✅ FILTER: Only show ACTIVE markets (not ended/resolved)
+    const now = Date.now();
+    const activeMarkets = deduplicated.filter(m => {
+      // Skip markets where endDate has passed
+      if (m.endDate) {
+        const endDate = new Date(m.endDate).getTime();
+        if (endDate < now) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    res.json(activeMarkets);
   } catch (error: any) {
     console.error('❌ API error:', error.message);
     res.status(500).json({ error: error.message });
