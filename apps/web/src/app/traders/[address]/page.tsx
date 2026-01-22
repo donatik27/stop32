@@ -327,7 +327,7 @@ export default function TraderProfilePage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Total PnL */}
         <div className="bg-card pixel-border border-primary/40 p-6">
           <div className="flex items-center gap-2 mb-2">
@@ -337,42 +337,35 @@ export default function TraderProfilePage() {
           <p className={`text-2xl font-bold ${trader.estimatedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
             {trader.estimatedPnL >= 0 ? '+' : ''}{formatCurrency(trader.estimatedPnL)}
           </p>
+          <p className="text-xs text-muted-foreground mt-1">Monthly earnings</p>
         </div>
 
-        {/* Win Rate */}
+        {/* Total Trades */}
         <div className="bg-card pixel-border border-primary/40 p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Target className="h-5 w-5 text-primary" />
-            <p className="text-xs text-muted-foreground uppercase">Win_Rate</p>
+            <Activity className="h-5 w-5 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase">Total_Trades</p>
           </div>
           <p className="text-2xl font-bold text-white">
-            {(trader.winRate * 100).toFixed(1)}%
+            {activity?.totalTrades || trader.tradeCount || 0}
           </p>
+          <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
         </div>
 
         {/* Volume */}
         <div className="bg-card pixel-border border-primary/40 p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Activity className="h-5 w-5 text-primary" />
+            <TrendingUp className="h-5 w-5 text-primary" />
             <p className="text-xs text-muted-foreground uppercase">Volume</p>
           </div>
           <p className="text-2xl font-bold text-white">
-            {formatCurrency(trader.volume)}
+            {activity && activity.categoryBreakdown.length > 0
+              ? formatCurrency(activity.categoryBreakdown.reduce((sum, cat) => sum + cat.volume, 0))
+              : formatCurrency(trader.volume || 0)
+            }
           </p>
-        </div>
-
-        {/* Unrealized PnL */}
-        <div className="bg-card pixel-border border-primary/40 p-6">
-          <div className="flex items-center gap-2 mb-2">
-            {totalUnrealizedPnL >= 0 ? (
-              <TrendingUp className="h-5 w-5 text-green-500" />
-            ) : (
-              <TrendingDown className="h-5 w-5 text-red-500" />
-            )}
-            <p className="text-xs text-muted-foreground uppercase">Unrealized_PnL</p>
-          </div>
-          <p className={`text-2xl font-bold ${totalUnrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {totalUnrealizedPnL >= 0 ? '+' : ''}{formatCurrency(totalUnrealizedPnL)}
+          <p className="text-xs text-muted-foreground mt-1">
+            {activity && activity.categoryBreakdown.length > 0 ? 'Last 100 trades' : 'Estimated'}
           </p>
         </div>
       </div>
@@ -500,7 +493,7 @@ export default function TraderProfilePage() {
               <p className="text-xs text-muted-foreground mb-2 uppercase">Last Trade</p>
               <p className="text-xl font-bold text-white">
                 {activity.lastTrade 
-                  ? new Date(activity.lastTrade).toLocaleString('en-US', {
+                  ? new Date(activity.lastTrade * 1000).toLocaleString('en-US', {
                       month: 'short',
                       day: 'numeric',
                       hour: '2-digit',
@@ -511,7 +504,16 @@ export default function TraderProfilePage() {
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {activity.lastTrade 
-                  ? `${Math.floor((Date.now() - new Date(activity.lastTrade).getTime()) / (1000 * 60 * 60))}h ago`
+                  ? (() => {
+                      const hoursAgo = Math.floor((Date.now() - activity.lastTrade * 1000) / (1000 * 60 * 60));
+                      if (hoursAgo < 1) {
+                        const minsAgo = Math.floor((Date.now() - activity.lastTrade * 1000) / (1000 * 60));
+                        return `${minsAgo}m ago`;
+                      }
+                      if (hoursAgo < 24) return `${hoursAgo}h ago`;
+                      const daysAgo = Math.floor(hoursAgo / 24);
+                      return `${daysAgo}d ago`;
+                    })()
                   : 'N/A'
                 }
               </p>
