@@ -301,10 +301,11 @@ async function discoverNewMarkets(payload: any) {
         }
       }
       
-      // Skip markets with extreme prices (99%+ = already resolved)
+      // Skip markets with VERY extreme prices (99.5%+ = clearly resolved)
+      // Allow 90-99% markets as they can still be tradeable
       if (m.outcomePrices && Array.isArray(m.outcomePrices)) {
         const prices = m.outcomePrices.map((p: string) => parseFloat(p));
-        const hasExtremePrice = prices.some((p: number) => p >= 0.99 || p <= 0.01);
+        const hasExtremePrice = prices.some((p: number) => p >= 0.995 || p <= 0.005);
         if (hasExtremePrice) {
           return false;
         }
@@ -313,7 +314,14 @@ async function discoverNewMarkets(payload: any) {
       return true;
     });
     
-    logger.info(`📈 Analyzing ${markets.length} new markets (from ${allMarkets.length} total)...`);
+    logger.info(`📈 Filtered markets: ${markets.length} active (from ${allMarkets.length} total, ${allMarkets.length - markets.length} filtered out)`);
+    logger.info(`   Filters: closed=${allMarkets.filter((m: any) => m.closed).length}, expired=${allMarkets.filter((m: any) => m.endDate && new Date(m.endDate).getTime() < now).length}, extreme_price=${allMarkets.filter((m: any) => {
+      if (m.outcomePrices && Array.isArray(m.outcomePrices)) {
+        const prices = m.outcomePrices.map((p: string) => parseFloat(p));
+        return prices.some((p: number) => p >= 0.995 || p <= 0.005);
+      }
+      return false;
+    }).length}`);
     
     const client = createPublicClient({
       chain: polygon,
