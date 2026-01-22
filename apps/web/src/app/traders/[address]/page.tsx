@@ -34,7 +34,7 @@ interface Position {
 }
 
 interface ActivityStats {
-  lastTrade: string | null
+  lastTrade: number | null
   totalTrades: number
   activeDays: number
   categoryBreakdown: {
