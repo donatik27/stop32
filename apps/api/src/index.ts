@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '@polymarket/database';
 import telegramAlertsRouter from './telegram-alerts';
+import { initDatabase } from './init-db';
 
 // Force rebuild - v2
 const app = express();
@@ -864,6 +865,15 @@ app.get('/api/redirect-market/:marketId', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`✅ API server running on port ${port}`);
+// Initialize database before starting server
+initDatabase().then(() => {
+  app.listen(port, () => {
+    console.log(`✅ API server running on port ${port}`);
+  });
+}).catch((error) => {
+  console.error('❌ Failed to initialize database:', error);
+  // Start API anyway - table might already exist
+  app.listen(port, () => {
+    console.log(`✅ API server running on port ${port} (DB init failed, but continuing)`);
+  });
 });
