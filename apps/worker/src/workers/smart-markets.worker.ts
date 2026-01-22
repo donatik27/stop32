@@ -99,10 +99,10 @@ async function updatePinnedMarkets(payload: any) {
       }
     });
     
-    // Limit to TOP-200 traders for better market coverage
+    // FIX 2: Increased to TOP-300 traders (was 200) for better market coverage
     const smartTraders = allTraders
       .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
-      .slice(0, 200);
+      .slice(0, 300);
     
     logger.info(`✅ Using TOP-${smartTraders.length} traders for pinned markets analysis`);
     
@@ -266,12 +266,12 @@ async function discoverNewMarkets(payload: any) {
     logger.info(`   A-tier: ${allTraders.filter((t: any) => t.tier === 'A').length}`);
     logger.info(`   B-tier: ${allTraders.filter((t: any) => t.tier === 'B').length}`);
     
-    // Limit to TOP-200 traders for better market coverage (200 traders × 2 tokens = 400 calls)
+    // FIX 2: Increased to TOP-300 traders (was 200) for better market coverage (300 traders × 2 tokens = 600 calls)
     const smartTraders = allTraders
       .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
-      .slice(0, 200);
+      .slice(0, 300);
     
-    logger.info(`🎯 Using TOP-${smartTraders.length} traders for analysis (increased from 100 for better coverage)`);
+    logger.info(`🎯 Using TOP-${smartTraders.length} traders for analysis (increased for better Alpha Markets coverage)`);
     
     // Fetch top markets (excluding already pinned)
     const pinnedMarketIds = (await prisma.marketSmartStats.findMany({
@@ -279,7 +279,8 @@ async function discoverNewMarkets(payload: any) {
       select: { marketId: true }
     })).map(m => m.marketId);
     
-    const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=200&closed=false&order=volume&ascending=false');
+    // FIX 1: Increase market limit to 500 (was 200) for better coverage
+    const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=500&closed=false&order=volume&ascending=false');
     const allMarkets = await marketsRes.json();
     
     // SIMPLE FILTER: Skip only markets that ALREADY ENDED or are CLEARLY RESOLVED
