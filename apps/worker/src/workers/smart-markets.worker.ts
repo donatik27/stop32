@@ -112,8 +112,8 @@ async function discoverAlphaMarkets() {
   logger.info('🚀 STARTING ALPHA MARKETS DISCOVERY (REBUILT VERSION)');
   
   try {
-    // STEP 1: Fetch S/A/B tier traders from database
-    logger.info('📥 STEP 1: Loading S/A/B tier traders...');
+    // STEP 1: Fetch TOP S/A/B tier traders from database
+    logger.info('📥 STEP 1: Loading TOP S/A/B tier traders...');
     const allTraders = await prisma.trader.findMany({
       where: {
         tier: { in: ['S', 'A', 'B'] }
@@ -123,10 +123,14 @@ async function discoverAlphaMarkets() {
         displayName: true,
         tier: true,
         realizedPnl: true
-      }
+      },
+      orderBy: {
+        realizedPnl: 'desc'
+      },
+      take: 200 // LIMIT to TOP-200 traders to prevent crashes
     });
     
-    logger.info(`   ✅ Loaded ${allTraders.length} traders (S: ${allTraders.filter(t => t.tier === 'S').length}, A: ${allTraders.filter(t => t.tier === 'A').length}, B: ${allTraders.filter(t => t.tier === 'B').length})`);
+    logger.info(`   ✅ Loaded TOP-${allTraders.length} traders (S: ${allTraders.filter(t => t.tier === 'S').length}, A: ${allTraders.filter(t => t.tier === 'A').length}, B: ${allTraders.filter(t => t.tier === 'B').length})`);
     
     // STEP 2: Fetch 500 markets from Polymarket API
     logger.info('📥 STEP 2: Fetching 500 markets from Polymarket...');
@@ -159,7 +163,15 @@ async function discoverAlphaMarkets() {
     
     logger.info(`   ✅ ${filteredMarkets.length} markets passed filters (${allMarkets.length - filteredMarkets.length} filtered out)`);
     
-    // STEP 4: Create RPC client for on-chain data
+    // STEP 4: LIMIT markets per run (prevent crashes!)
+    const MAX_MARKETS_PER_RUN = 50; // Process max 50 markets to avoid timeouts
+    const marketsToAnalyze = filteredMarkets.slice(0, MAX_MARKETS_PER_RUN);
+    
+    if (filteredMarkets.length > MAX_MARKETS_PER_RUN) {
+      logger.info(`   ⚠️  Limited to ${MAX_MARKETS_PER_RUN} markets (out of ${filteredMarkets.length}) to prevent timeout`);
+    }
+    
+    // STEP 5: Create RPC client for on-chain data
     const client = createPublicClient({
       chain: polygon,
       transport: http('https://1rpc.io/matic', {
@@ -169,18 +181,24 @@ async function discoverAlphaMarkets() {
       })
     });
     
-    // STEP 5: Analyze each market
-    logger.info('🔬 STEP 5: Analyzing markets for trader positions...');
+    // STEP 6: Analyze each market
+    logger.info(`🔬 STEP 6: Analyzing ${marketsToAnalyze.length} markets for trader positions...`);
     let savedCount = 0;
+    let errorCount = 0;
     
-    for (let i = 0; i < filteredMarkets.length; i++) {
-      const market = filteredMarkets[i];
+    for (let i = 0; i < marketsToAnalyze.length; i++) {
+      const market = marketsToAnalyze[i];
       
       try {
-        logger.info(`   [${i + 1}/${filteredMarkets.length}] ${market.question.slice(0, 50)}...`);
+        logger.info(`   [${i + 1}/${marketsToAnalyze.length}] ${market.question.slice(0, 50)}...`);
         
-        // Analyze market
-        const analysis = await analyzeMarket(client, market, allTraders);
+        // Analyze market with timeout protection
+        const analysis = await Promise.race([
+          analyzeMarket(client, market, allTraders),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Market analysis timeout')), 60000) // 60s timeout
+          )
+        ]) as MarketAnalysis;
         
         // Save if 2+ traders found
         if (analysis.smartCount >= 2) {
@@ -192,17 +210,32 @@ async function discoverAlphaMarkets() {
         }
         
       } catch (error: any) {
+        errorCount++;
         logger.error(`      ❌ ERROR: ${error.message}`);
+        
+        // Stop if too many errors (something is seriously wrong)
+        if (errorCount > 10) {
+          logger.error('🛑 Too many errors (>10), stopping to prevent crash');
+          break;
+        }
       }
       
       // Pause between markets to avoid rate limits
-      if (i < filteredMarkets.length - 1) {
+      if (i < marketsToAnalyze.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
     
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.info(`🎉 DISCOVERY COMPLETE! Saved ${savedCount} Alpha Markets in ${duration}s`);
+    
+    if (errorCount > 0) {
+      logger.warn(`⚠️  Encountered ${errorCount} errors during discovery`);
+    }
+    
+    if (filteredMarkets.length > MAX_MARKETS_PER_RUN) {
+      logger.info(`ℹ️  ${filteredMarkets.length - MAX_MARKETS_PER_RUN} markets remaining for next run`);
+    }
     
   } catch (error) {
     logger.error({ error }, '❌ Discovery failed');
