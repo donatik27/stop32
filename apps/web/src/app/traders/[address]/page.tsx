@@ -1,4 +1,5 @@
 'use client'
+// Force Vercel rebuild - added Category Breakdown & Activity Timeline!
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -28,6 +29,20 @@ interface Position {
   currentPrice: number
   unrealizedPnL: number
   value: number
+  category?: string
+  image?: string
+}
+
+interface ActivityStats {
+  lastTrade: number | null
+  totalTrades: number
+  activeDays: number
+  categoryBreakdown: {
+    category: string
+    count: number
+    volume: number
+    percentage: number
+  }[]
 }
 
 // Format currency in a clear way
@@ -51,7 +66,11 @@ export default function TraderProfilePage() {
 
   const [trader, setTrader] = useState<Trader | null>(null)
   const [positions, setPositions] = useState<Position[]>([])
+  const [activity, setActivity] = useState<ActivityStats | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Railway API base URL
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://adorable-grace-production-e919.up.railway.app'
 
   useEffect(() => {
     fetchTraderData()
@@ -67,7 +86,23 @@ export default function TraderProfilePage() {
       if (traderRes.ok) {
         const foundTrader: Trader = await traderRes.json()
         setTrader(foundTrader)
-        setPositions([])
+        
+        // Fetch positions and activity in parallel from Railway API
+        const [positionsRes, activityRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/trader/${address}/positions`),
+          fetch(`${API_BASE_URL}/api/trader/${address}/activity`)
+        ])
+        
+        if (positionsRes.ok) {
+          const positionsData = await positionsRes.json()
+          setPositions(positionsData)
+        }
+        
+        if (activityRes.ok) {
+          const activityData = await activityRes.json()
+          setActivity(activityData)
+        }
+        
         return
       }
       
@@ -83,7 +118,22 @@ export default function TraderProfilePage() {
       }
 
       setTrader(foundTrader)
-      setPositions([])
+      
+      // Fetch positions and activity for leaderboard traders too from Railway API
+      const [positionsRes, activityRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/trader/${address}/positions`),
+        fetch(`${API_BASE_URL}/api/trader/${address}/activity`)
+      ])
+      
+      if (positionsRes.ok) {
+        const positionsData = await positionsRes.json()
+        setPositions(positionsData)
+      }
+      
+      if (activityRes.ok) {
+        const activityData = await activityRes.json()
+        setActivity(activityData)
+      }
       
     } catch (error) {
       console.error('Failed to fetch trader data:', error)
@@ -277,7 +327,7 @@ export default function TraderProfilePage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Total PnL */}
         <div className="bg-card pixel-border border-primary/40 p-6">
           <div className="flex items-center gap-2 mb-2">
@@ -287,42 +337,35 @@ export default function TraderProfilePage() {
           <p className={`text-2xl font-bold ${trader.estimatedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
             {trader.estimatedPnL >= 0 ? '+' : ''}{formatCurrency(trader.estimatedPnL)}
           </p>
+          <p className="text-xs text-muted-foreground mt-1">Monthly earnings</p>
         </div>
 
-        {/* Win Rate */}
+        {/* Total Trades */}
         <div className="bg-card pixel-border border-primary/40 p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Target className="h-5 w-5 text-primary" />
-            <p className="text-xs text-muted-foreground uppercase">Win_Rate</p>
+            <Activity className="h-5 w-5 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase">Total_Trades</p>
           </div>
           <p className="text-2xl font-bold text-white">
-            {(trader.winRate * 100).toFixed(1)}%
+            {activity?.totalTrades || trader.tradeCount || 0}
           </p>
+          <p className="text-xs text-muted-foreground mt-1">Recent activity</p>
         </div>
 
         {/* Volume */}
         <div className="bg-card pixel-border border-primary/40 p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Activity className="h-5 w-5 text-primary" />
+            <TrendingUp className="h-5 w-5 text-primary" />
             <p className="text-xs text-muted-foreground uppercase">Volume</p>
           </div>
           <p className="text-2xl font-bold text-white">
-            {formatCurrency(trader.volume)}
+            {activity && activity.categoryBreakdown.length > 0
+              ? formatCurrency(activity.categoryBreakdown.reduce((sum, cat) => sum + cat.volume, 0))
+              : formatCurrency(trader.volume || 0)
+            }
           </p>
-        </div>
-
-        {/* Unrealized PnL */}
-        <div className="bg-card pixel-border border-primary/40 p-6">
-          <div className="flex items-center gap-2 mb-2">
-            {totalUnrealizedPnL >= 0 ? (
-              <TrendingUp className="h-5 w-5 text-green-500" />
-            ) : (
-              <TrendingDown className="h-5 w-5 text-red-500" />
-            )}
-            <p className="text-xs text-muted-foreground uppercase">Unrealized_PnL</p>
-          </div>
-          <p className={`text-2xl font-bold ${totalUnrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {totalUnrealizedPnL >= 0 ? '+' : ''}{formatCurrency(totalUnrealizedPnL)}
+          <p className="text-xs text-muted-foreground mt-1">
+            {activity && activity.categoryBreakdown.length > 0 ? 'Last 100 trades' : 'Estimated'}
           </p>
         </div>
       </div>
@@ -387,6 +430,120 @@ export default function TraderProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Category Breakdown */}
+      {activity && activity.categoryBreakdown.length > 0 && (
+        <div className="bg-card pixel-border border-cyan-500/40 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <svg className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <h2 className="text-2xl font-bold text-cyan-400">CATEGORY_BREAKDOWN</h2>
+            <span className="text-muted-foreground text-sm">
+              (Last 100 trades)
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {activity.categoryBreakdown.map((cat, idx) => (
+              <div key={idx} className="bg-black/40 pixel-border border-white/20 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-white">{cat.category}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {cat.count} trades
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-cyan-400">
+                      {formatCurrency(cat.volume)}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="w-full bg-black/60 h-2 pixel-border border-white/10 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-cyan-500 to-cyan-300"
+                    style={{ width: `${cat.percentage}%` }}
+                  />
+                </div>
+                
+                <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                  <span>{cat.percentage.toFixed(1)}% of trades</span>
+                  <span>Avg: {formatCurrency(cat.volume / cat.count)} per trade</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Activity Timeline */}
+      {activity && (
+        <div className="bg-card pixel-border border-yellow-500/40 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Activity className="h-6 w-6 text-yellow-400" />
+            <h2 className="text-2xl font-bold text-yellow-400">ACTIVITY_TIMELINE</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Last Trade */}
+            <div className="bg-black/40 pixel-border border-white/20 p-4">
+              <p className="text-xs text-muted-foreground mb-2 uppercase">Last Trade</p>
+              <p className="text-xl font-bold text-white">
+                {activity.lastTrade 
+                  ? new Date(activity.lastTrade * 1000).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  : 'No recent trades'
+                }
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {activity.lastTrade 
+                  ? (() => {
+                      const hoursAgo = Math.floor((Date.now() - activity.lastTrade * 1000) / (1000 * 60 * 60));
+                      if (hoursAgo < 1) {
+                        const minsAgo = Math.floor((Date.now() - activity.lastTrade * 1000) / (1000 * 60));
+                        return `${minsAgo}m ago`;
+                      }
+                      if (hoursAgo < 24) return `${hoursAgo}h ago`;
+                      const daysAgo = Math.floor(hoursAgo / 24);
+                      return `${daysAgo}d ago`;
+                    })()
+                  : 'N/A'
+                }
+              </p>
+            </div>
+
+            {/* Total Trades */}
+            <div className="bg-black/40 pixel-border border-white/20 p-4">
+              <p className="text-xs text-muted-foreground mb-2 uppercase">Recent Trades</p>
+              <p className="text-xl font-bold text-yellow-400">
+                {activity.totalTrades}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Last 100 tracked</p>
+            </div>
+
+            {/* Active Days */}
+            <div className="bg-black/40 pixel-border border-white/20 p-4">
+              <p className="text-xs text-muted-foreground mb-2 uppercase">Active Days</p>
+              <p className="text-xl font-bold text-yellow-400">
+                {activity.activeDays}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {activity.totalTrades > 0 
+                  ? `Avg ${(activity.totalTrades / activity.activeDays).toFixed(1)} trades/day`
+                  : 'N/A'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Open Positions */}
       <div className="bg-card pixel-border border-primary/40 p-6">

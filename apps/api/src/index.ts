@@ -1,10 +1,27 @@
 import express from 'express';
 import { prisma } from '@polymarket/database';
+import telegramAlertsRouter from './telegram-alerts';
+import { initDatabase } from './init-db';
 
+// Force rebuild - v2
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
 
+// CORS - allow Python bot to send alerts
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
+
+// Telegram alerts integration
+app.use('/api/telegram-alerts', telegramAlertsRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
@@ -291,6 +308,59 @@ app.post('/api/traders-map-enriched', async (req, res) => {
   }
 });
 
+// DEBUG: Check recently discovered markets
+app.get('/api/debug/discovered-markets', async (_req, res) => {
+  try {
+    const recentStats = await prisma.marketSmartStats.findMany({
+      where: {
+        computedAt: {
+          gte: new Date(Date.now() - 2 * 60 * 60 * 1000), // Last 2 hours
+        },
+        isPinned: false,
+      },
+      include: {
+        market: {
+          select: {
+            id: true,
+            question: true,
+            status: true,
+            endDate: true,
+          },
+        },
+      },
+      orderBy: { computedAt: 'desc' },
+    });
+
+    const now = new Date();
+    const analysis = recentStats.map(stat => {
+      const market = stat.market;
+      const endDate = market.endDate ? new Date(market.endDate) : null;
+      const statusOK = market.status === 'OPEN';
+      const endDateOK = !endDate || endDate >= now;
+      
+      return {
+        question: market.question,
+        status: market.status,
+        statusOK,
+        endDate: endDate?.toISOString() || null,
+        endDateOK,
+        passesFilter: statusOK && endDateOK,
+        smartCount: stat.smartCount,
+        computedAt: stat.computedAt.toISOString(),
+      };
+    });
+
+    res.json({
+      total: analysis.length,
+      passing: analysis.filter(a => a.passesFilter).length,
+      blocked: analysis.filter(a => !a.passesFilter).length,
+      markets: analysis,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/smart-markets', async (_req, res) => {
   try {
     const stats = await prisma.marketSmartStats.findMany({
@@ -298,6 +368,12 @@ app.get('/api/smart-markets', async (_req, res) => {
         computedAt: {
           gte: new Date(Date.now() - 48 * 60 * 60 * 1000),
         },
+        market: {
+          status: 'OPEN',  // ✅ Only OPEN markets, not CLOSED or RESOLVED
+          endDate: {
+            gte: new Date()  // ✅ Only markets with future endDate
+          }
+        }
       },
       orderBy: [{ smartScore: 'desc' }, { smartCount: 'desc' }],
       take: 20,
@@ -396,7 +472,20 @@ app.get('/api/smart-markets', async (_req, res) => {
       }
     });
 
-    res.json(deduplicated);
+    // ✅ FILTER: Only show ACTIVE markets (not ended/resolved)
+    const now = Date.now();
+    const activeMarkets = deduplicated.filter(m => {
+      // Skip markets where endDate has passed
+      if (m.endDate) {
+        const endDate = new Date(m.endDate).getTime();
+        if (endDate < now) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    res.json(activeMarkets);
   } catch (error: any) {
     console.error('❌ API error:', error.message);
     res.status(500).json({ error: error.message });
@@ -681,6 +770,179 @@ app.get('/api/trader/:address', async (req, res) => {
   }
 });
 
+// Get trader positions from Polymarket CLOB API
+app.get('/api/trader/:address/positions', async (req, res) => {
+  const { address } = req.params;
+  
+  try {
+    // Fetch positions from Polymarket CLOB API
+    const positionsRes = await fetch(`https://clob.polymarket.com/positions/${address}`);
+    
+    if (!positionsRes.ok) {
+      return res.json([]);
+    }
+    
+    const positionsData = await positionsRes.json() as any;
+    
+    // Transform positions to include market info
+    const positions = await Promise.all(
+      ((positionsData.data || []) as any[]).slice(0, 10).map(async (pos: any) => {
+        try {
+          // Fetch market details from gamma API
+          const marketRes = await fetch(
+            `https://gamma-api.polymarket.com/markets/${pos.market}`
+          );
+          
+          let marketInfo: any = {};
+          if (marketRes.ok) {
+            marketInfo = await marketRes.json();
+          }
+          
+          const outcome = pos.outcome || 'YES';
+          const shares = parseFloat(pos.size || '0');
+          const avgPrice = parseFloat(pos.avg_entry_price || '0');
+          const currentPrice = parseFloat(marketInfo.outcome_prices?.[outcome] || pos.current_price || '0.5');
+          const value = shares * currentPrice;
+          const unrealizedPnL = shares * (currentPrice - avgPrice);
+          
+          return {
+            marketId: pos.market,
+            question: marketInfo.question || pos.market,
+            outcome,
+            shares,
+            avgPrice,
+            currentPrice,
+            unrealizedPnL,
+            value,
+            category: marketInfo.category || 'Unknown',
+            image: marketInfo.image || null,
+          };
+        } catch (e) {
+          return null;
+        }
+      })
+    );
+    
+    // Filter out null positions and sort by value
+    const validPositions = positions
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+      .sort((a, b) => b.value - a.value);
+    
+    res.json(validPositions);
+  } catch (error: any) {
+    console.error('Error fetching positions:', error);
+    res.json([]);
+  }
+});
+
+// Get trader activity stats
+app.get('/api/trader/:address/activity', async (req, res) => {
+  const { address } = req.params;
+  
+  try {
+    // Fetch recent trades from Polymarket
+    const tradesRes = await fetch(
+      `https://data-api.polymarket.com/v1/trades?user=${address}&limit=100`
+    );
+    
+    if (!tradesRes.ok) {
+      return res.json({
+        lastTrade: null,
+        totalTrades: 0,
+        activeDays: 0,
+        categoryBreakdown: [],
+      });
+    }
+    
+    const trades = await tradesRes.json() as any[];
+    
+    // Calculate stats
+    const lastTrade = trades.length > 0 ? trades[0].timestamp : null;
+    const totalTrades = trades.length;
+    
+    // Count unique days with trades
+    const tradeDays = new Set(
+      trades.map((t: any) => new Date(t.timestamp).toDateString())
+    );
+    const activeDays = tradeDays.size;
+    
+    // Helper to detect category from trade title
+    const detectCategory = (title: string): string => {
+      const t = title.toLowerCase();
+      
+      // Crypto keywords
+      if (t.includes('bitcoin') || t.includes('btc') || t.includes('ethereum') || 
+          t.includes('eth') || t.includes('crypto') || t.includes('solana') ||
+          t.includes('dogecoin') || t.includes('xrp')) {
+        return 'Crypto';
+      }
+      
+      // Politics keywords
+      if (t.includes('trump') || t.includes('biden') || t.includes('election') ||
+          t.includes('president') || t.includes('congress') || t.includes('senate') ||
+          t.includes('governor') || t.includes('political') || t.includes('white house')) {
+        return 'Politics';
+      }
+      
+      // Sports keywords
+      if (t.includes(' fc ') || t.includes('nfl') || t.includes('nba') || 
+          t.includes('football') || t.includes('basketball') || t.includes('soccer') ||
+          t.includes('win on') || t.includes('championship') || t.includes('super bowl')) {
+        return 'Sports';
+      }
+      
+      // Pop Culture
+      if (t.includes('movie') || t.includes('oscars') || t.includes('grammy') ||
+          t.includes('celebrity') || t.includes('box office')) {
+        return 'Pop Culture';
+      }
+      
+      return 'Other';
+    };
+    
+    // Category breakdown from trades
+    const categoryMap = new Map<string, { count: number; volume: number }>();
+    
+    for (const trade of trades) {
+      const category = detectCategory(trade.title || '');
+      const volume = parseFloat(trade.size || '0') * parseFloat(trade.price || '0');
+      
+      if (categoryMap.has(category)) {
+        const existing = categoryMap.get(category)!;
+        existing.count++;
+        existing.volume += volume;
+      } else {
+        categoryMap.set(category, { count: 1, volume });
+      }
+    }
+    
+    const categoryBreakdown = Array.from(categoryMap.entries())
+      .map(([category, stats]) => ({
+        category,
+        count: stats.count,
+        volume: stats.volume,
+        percentage: (stats.count / totalTrades) * 100,
+      }))
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5); // Top 5 categories
+    
+    res.json({
+      lastTrade,
+      totalTrades,
+      activeDays,
+      categoryBreakdown,
+    });
+  } catch (error: any) {
+    console.error('Error fetching activity:', error);
+    res.json({
+      lastTrade: null,
+      totalTrades: 0,
+      activeDays: 0,
+      categoryBreakdown: [],
+    });
+  }
+});
+
 app.get('/api/market-price', async (req, res) => {
   try {
     const marketId = req.query.marketId as string | undefined;
@@ -848,6 +1110,15 @@ app.get('/api/redirect-market/:marketId', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`✅ API server running on port ${port}`);
+// Initialize database before starting server
+initDatabase().then(() => {
+  app.listen(port, () => {
+    console.log(`✅ API server running on port ${port}`);
+  });
+}).catch((error) => {
+  console.error('❌ Failed to initialize database:', error);
+  // Start API anyway - table might already exist
+  app.listen(port, () => {
+    console.log(`✅ API server running on port ${port} (DB init failed, but continuing)`);
+  });
 });

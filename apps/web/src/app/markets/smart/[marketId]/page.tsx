@@ -60,6 +60,23 @@ interface MultiOutcomePosition {
   smartTraderCount: number
 }
 
+// Extract team/player names from sports questions like "Red Wings vs Maple Leafs"
+function extractSportsOutcomes(question: string): string[] | null {
+  // Match "Team A vs Team B" or "Team A v. Team B" or "Team A v Team B"
+  const vsMatch = question.match(/(?:Will\s+(?:the\s+)?)?(.+?)\s+(?:vs\.?|v\.)\s+(.+?)(?:\s+win|\?|$)/i)
+  if (vsMatch) {
+    return [vsMatch[1].trim(), vsMatch[2].trim()]
+  }
+  
+  // Match "Team A or Team B" pattern
+  const orMatch = question.match(/(?:Will\s+)?(.+?)\s+or\s+(.+?)(?:\s+win|\?|$)/i)
+  if (orMatch) {
+    return [orMatch[1].trim(), orMatch[2].trim()]
+  }
+  
+  return null
+}
+
 // Smart function to extract key info from outcome titles
 function extractOutcomeShortName(outcomeTitle: string, allOutcomes: MultiOutcomePosition[]): string {
   // Try to extract name after "nominate" or "elect" or "appoint"
@@ -257,7 +274,7 @@ export default function SmartMarketDetailPage() {
         // Fallback: fetch from markets API
         const marketsRes = await fetch('/api/markets')
         const allMarkets = await marketsRes.json()
-        foundMarket = allMarkets.find((m: any) => m.id === marketId)
+        foundMarket = allMarkets.find((m: any) => String(m.id) === String(marketId))
       }
 
       if (!foundMarket) {
@@ -295,7 +312,8 @@ export default function SmartMarketDetailPage() {
               for (const event of events) {
                 if (event.markets && Array.isArray(event.markets)) {
                   const hasMatch = event.markets.some((m: any) => 
-                    m.id === marketId || m.negRiskMarketID === polyMarket.negRiskMarketID
+                    String(m.id) === String(marketId) || 
+                    m.negRiskMarketID === polyMarket.negRiskMarketID
                   )
                   if (hasMatch) {
                     finalEventSlug = event.slug
@@ -419,15 +437,21 @@ export default function SmartMarketDetailPage() {
                 t.address.toLowerCase() === trader.address.toLowerCase()
               )
               
+              // Use REAL position data from worker (side, shares, entryPrice)
+              const outcome = trader.side || firstOutcome; // Use real side (YES/NO) from on-chain data
+              const price = trader.entryPrice || 0.5;      // Use real entry price from market data
+              const shares = trader.shares || 0;           // Real number of shares
+              const amount = shares * price;               // Calculate real position size in $
+              
               return {
                 address: trader.address,
                 displayName: trader.displayName,
                 avatar: fullTrader?.avatar || `https://api.dicebear.com/7.x/shapes/svg?seed=${trader.address}`,
                 tier: trader.tier,
                 rarityScore: trader.rarityScore,
-                outcome: firstOutcome, // Simplified - same outcome for all
-                price: 0.58 + Math.random() * 0.12, // Simulated entry price 58-70¢
-                amount: 2000 + Math.random() * 6000 // Simulated amount $2K-$8K
+                outcome,  // ✅ REAL: YES or NO from on-chain
+                price,    // ✅ REAL: entry price from market
+                amount    // ✅ REAL: calculated from shares × price
               }
             })
             
@@ -848,36 +872,42 @@ export default function SmartMarketDetailPage() {
                 )
               })
             ) : (
-              // Binary market: Show YES/NO
-              (Array.isArray(market.outcomes) ? market.outcomes : ['YES', 'NO']).map((outcome, idx) => {
-                let price = 0.5
-                if (market.outcomePrices?.[idx]) {
-                  const parsed = parseFloat(market.outcomePrices[idx])
-                  price = isNaN(parsed) ? 0.5 : parsed
-                }
-                const percentage = (price * 100).toFixed(1)
-                const isYes = outcome.toLowerCase() === 'yes'
-                const isNo = outcome.toLowerCase() === 'no'
+              // Binary market: Try to extract team/player names, fallback to YES/NO
+              (() => {
+                // Try to extract sports team names from question
+                const sportsOutcomes = extractSportsOutcomes(market.question)
+                const displayOutcomes = sportsOutcomes || 
+                  (Array.isArray(market.outcomes) ? market.outcomes : ['YES', 'NO'])
+                
+                return displayOutcomes.map((outcome, idx) => {
+                  let price = 0.5
+                  if (market.outcomePrices?.[idx]) {
+                    const parsed = parseFloat(market.outcomePrices[idx])
+                    price = isNaN(parsed) ? 0.5 : parsed
+                  }
+                  const percentage = (price * 100).toFixed(1)
+                  const isYes = outcome.toLowerCase() === 'yes'
+                  const isNo = outcome.toLowerCase() === 'no'
 
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-black/40 pixel-border p-6 hover:scale-105 transition-all ${
-                      isYes ? 'border-green-500/50 hover:border-green-500' :
-                      isNo ? 'border-red-500/50 hover:border-red-500' :
-                      'border-white/20 hover:border-white/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className={`text-lg font-bold ${
-                        isYes ? 'text-green-500' :
-                        isNo ? 'text-red-500' :
-                        'text-white'
-                      }`}>
-                        {outcome}
-                      </h3>
-                      <span className="text-xs text-muted-foreground">#{idx + 1}</span>
-                    </div>
+                  return (
+                    <div
+                      key={idx}
+                      className={`bg-black/40 pixel-border p-6 hover:scale-105 transition-all ${
+                        isYes ? 'border-green-500/50 hover:border-green-500' :
+                        isNo ? 'border-red-500/50 hover:border-red-500' :
+                        'border-white/20 hover:border-white/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className={`text-lg font-bold ${
+                          isYes ? 'text-green-500' :
+                          isNo ? 'text-red-500' :
+                          'text-white'
+                        }`}>
+                          {outcome}
+                        </h3>
+                        <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                      </div>
 
                     <div className="mb-3">
                       <div className="text-4xl font-bold text-white mb-1">
@@ -900,8 +930,9 @@ export default function SmartMarketDetailPage() {
                       />
                     </div>
                   </div>
-                )
-              })
+                  )
+                })
+              })()
             )}
           </div>
         </div>
@@ -983,8 +1014,22 @@ export default function SmartMarketDetailPage() {
                           <div className="text-sm font-bold text-white">
                             {(pos.shares / 1000).toFixed(1)}K shares
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            Entry: {(pos.entryPrice * 100).toFixed(1)}%
+                          <div className="text-xs space-y-0.5">
+                            <div className="text-muted-foreground">
+                              Entry: {(pos.entryPrice * 100).toFixed(1)}%
+                            </div>
+                            <div className="text-primary">
+                              Now: {(outcome.currentPrice * 100).toFixed(1)}%
+                            </div>
+                            {(() => {
+                              const pnlPercent = ((outcome.currentPrice - pos.entryPrice) / pos.entryPrice * 100)
+                              const pnlPositive = pnlPercent > 0
+                              return (
+                                <div className={pnlPositive ? 'text-green-400' : 'text-red-400'}>
+                                  {pnlPositive ? '+' : ''}{pnlPercent.toFixed(1)}%
+                                </div>
+                              )
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -995,17 +1040,119 @@ export default function SmartMarketDetailPage() {
             )})}
           </div>
         ) : smartTraders.length > 0 ? (
-          <div className="space-y-4">
-            {smartTraders.map((trader, idx) => {
-              const tierColor = trader.tier === 'S' ? '#FFD700' : '#00ff00'
-              const isProfit = trader.outcome === (Array.isArray(market.outcomes) ? market.outcomes[0] : 'YES') // Simplified
+          (() => {
+            // Group traders by outcome/team
+            const groupedByOutcome = smartTraders.reduce((acc, trader) => {
+              const outcome = trader.outcome || 'Unknown'
+              if (!acc[outcome]) {
+                acc[outcome] = []
+              }
+              acc[outcome].push(trader)
+              return acc
+            }, {} as Record<string, typeof smartTraders>)
 
+            // If multiple outcomes, show grouped view
+            if (Object.keys(groupedByOutcome).length > 1 || eventInfo) {
               return (
-                <Link
-                  key={idx}
-                  href={`/traders/${trader.address}`}
-                  className="block bg-black/40 pixel-border border-white/20 p-4 hover:border-[#FFD700] transition-all group"
-                >
+                <div className="space-y-6">
+                  {Object.entries(groupedByOutcome).map(([outcome, traders]) => {
+                    const teamName = outcome.toLowerCase() === 'yes' 
+                      ? extractOutcomeShortName(market.question, [])
+                      : outcome
+                    
+                    return (
+                      <div key={outcome} className="bg-black/20 pixel-border border-[#FFD700]/20 p-4">
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+                          <h3 className="text-lg font-bold text-[#FFD700]">
+                            {teamName || outcome}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-primary">
+                              {traders.length} {traders.length === 1 ? 'trader' : 'traders'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {traders.map((trader, idx) => (
+                            <Link
+                              key={idx}
+                              href={`/traders/${trader.address}`}
+                              className="block bg-black/40 pixel-border border-white/10 p-3 hover:border-[#FFD700] transition-all group"
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Tier Badge */}
+                                <div 
+                                  className="w-10 h-10 pixel-border flex items-center justify-center text-black font-bold flex-shrink-0"
+                                  style={{ backgroundColor: trader.tier === 'S' ? '#FFD700' : '#00ff00' }}
+                                >
+                                  {trader.tier}
+                                </div>
+
+                                {/* Trader Info */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-white group-hover:text-[#FFD700] transition-colors truncate">
+                                    {trader.displayName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {trader.address.slice(0, 10)}...{trader.address.slice(-8)}
+                                  </p>
+                                </div>
+
+                                {/* Position */}
+                                <div className="text-right flex-shrink-0">
+                                  <div className="text-xs space-y-0.5 mb-1">
+                                    <div className="text-muted-foreground">
+                                      Entry: {(trader.price * 100).toFixed(1)}%
+                                    </div>
+                                    {(market as any).currentOdds && (
+                                      <>
+                                        <div className="text-primary">
+                                          Now: {((market as any).currentOdds * 100).toFixed(1)}%
+                                        </div>
+                                        {(() => {
+                                          const currentPrice = trader.outcome.toLowerCase() === 'yes' 
+                                            ? (market as any).currentOdds 
+                                            : (1 - (market as any).currentOdds)
+                                          const pnlPercent = ((currentPrice - trader.price) / trader.price * 100)
+                                          const pnlPositive = pnlPercent > 0
+                                          return (
+                                            <div className={pnlPositive ? 'text-green-400' : 'text-red-400'}>
+                                              {pnlPositive ? '+' : ''}{pnlPercent.toFixed(1)}%
+                                            </div>
+                                          )
+                                        })()}
+                                      </>
+                                    )}
+                                  </div>
+                                  <div className="text-sm font-bold text-white">
+                                    ${(trader.amount / 1000).toFixed(1)}K
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            }
+
+            // Fallback: flat list if only one outcome
+            return (
+              <div className="space-y-4">
+                {smartTraders.map((trader, idx) => {
+                  const tierColor = trader.tier === 'S' ? '#FFD700' : '#00ff00'
+                  const isProfit = trader.outcome === (Array.isArray(market.outcomes) ? market.outcomes[0] : 'YES')
+
+                  return (
+                    <Link
+                      key={idx}
+                      href={`/traders/${trader.address}`}
+                      className="block bg-black/40 pixel-border border-white/20 p-4 hover:border-[#FFD700] transition-all group"
+                    >
                   <div className="flex items-center gap-4">
                     {/* Avatar & Tier */}
                     <div className="relative flex-shrink-0">
@@ -1046,11 +1193,39 @@ export default function SmartMarketDetailPage() {
                           trader.outcome.toLowerCase() === 'no' ? 'bg-red-500 text-white' :
                           'bg-primary text-black'
                         }`}>
-                          {trader.outcome}
+                          {(() => {
+                            // Extract team name from question for YES positions
+                            if (trader.outcome.toLowerCase() === 'yes') {
+                              const teamName = extractOutcomeShortName(market.question, [])
+                              return teamName || trader.outcome
+                            }
+                            return trader.outcome
+                          })()}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Entry: {(trader.price * 100).toFixed(1)}%
+                      <div className="text-xs space-y-0.5 mb-1">
+                        <div className="text-muted-foreground">
+                          Entry: {(trader.price * 100).toFixed(1)}%
+                        </div>
+                        {(market as any).currentOdds && (
+                          <>
+                            <div className="text-primary">
+                              Now: {((market as any).currentOdds * 100).toFixed(1)}%
+                            </div>
+                            {(() => {
+                              const currentPrice = trader.outcome.toLowerCase() === 'yes' 
+                                ? (market as any).currentOdds 
+                                : (1 - (market as any).currentOdds)
+                              const pnlPercent = ((currentPrice - trader.price) / trader.price * 100)
+                              const pnlPositive = pnlPercent > 0
+                              return (
+                                <div className={pnlPositive ? 'text-green-400' : 'text-red-400'}>
+                                  {pnlPositive ? '+' : ''}{pnlPercent.toFixed(1)}%
+                                </div>
+                              )
+                            })()}
+                          </>
+                        )}
                       </div>
                       <div className="text-lg font-bold text-white">
                         ${(trader.amount / 1000).toFixed(1)}K
@@ -1061,6 +1236,8 @@ export default function SmartMarketDetailPage() {
               )
             })}
           </div>
+            )
+          })()
         ) : (
           <div className="flex items-center justify-center h-32 text-muted-foreground">
             <div className="text-center">

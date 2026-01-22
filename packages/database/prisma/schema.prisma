@@ -194,3 +194,36 @@ model IngestionState {
   @@index([source])
 }
 
+model TelegramAlert {
+  id              String      @id @default(uuid())
+  
+  // Alert type
+  type            String      // "whale" | "price_move"
+  severity        String      @default("medium") // "high" | "medium" | "low"
+  
+  // Market info
+  marketTitle     String
+  marketSlug      String?
+  outcome         String?
+  
+  // Price data (for price_move alerts)
+  priceOld        Float?
+  priceNew        Float?
+  price           Float?      // Current price (for whale alerts)
+  percentChange   Float?
+  durationSec     Int?
+  direction       String?     // "UP" | "DOWN"
+  
+  // Whale data (for whale alerts)
+  sizeUsd         Float?
+  wallet          String?
+  
+  // Timestamps
+  alertTimestamp  DateTime    // When alert was triggered
+  createdAt       DateTime    @default(now())
+  
+  @@index([type, alertTimestamp])
+  @@index([alertTimestamp])
+  @@index([marketSlug])
+}
+

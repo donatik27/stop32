@@ -97,6 +97,17 @@ export default function MarketsPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  // Format currency with M for millions, K for thousands
+  const formatCurrency = (value: number): string => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`
+    } else {
+      return `$${value.toFixed(0)}`
+    }
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Cosmic Header */}
@@ -223,13 +234,13 @@ export default function MarketsPage() {
                     <div className="flex items-center justify-end gap-1">
                       <span className="text-primary text-sm">💵</span>
                       <span className="font-bold font-mono text-base text-primary">
-                        ${(market.volume / 1000).toFixed(0)}k
+                        {formatCurrency(market.volume)}
                       </span>
                     </div>
                   </td>
                   <td className="p-3 text-right">
                     <span className="font-mono text-sm text-muted-foreground">
-                      ${(market.liquidity / 1000).toFixed(0)}k
+                      {formatCurrency(market.liquidity)}
                     </span>
                   </td>
                   <td className="p-3 text-right">

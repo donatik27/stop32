@@ -340,7 +340,7 @@ async function syncStaticXTraders() {
             totalPnl: allTimePnl,
             tradeCount: marketsTraded,
             winRate: winRate,
-            rarityScore: Math.floor(allTimePnl + (volume * 0.1)),
+            rarityScore: calculateRarityScore(allTimePnl, volume, marketsTraded, 1, true), // NORMALIZED 0-1000
           },
           update: {
             displayName,
@@ -351,7 +351,7 @@ async function syncStaticXTraders() {
             totalPnl: allTimePnl,
             tradeCount: marketsTraded,
             winRate: winRate,
-            rarityScore: Math.floor(allTimePnl + (volume * 0.1)),
+            rarityScore: calculateRarityScore(allTimePnl, volume, marketsTraded, 1, true), // NORMALIZED 0-1000
             lastActiveAt: new Date(),
           },
         });
@@ -1002,13 +1002,12 @@ async function syncPublicTraders(payload: any) {
           winRate = estimatedWins;
         }
         
-        // Calculate rarity score based on PnL and volume
-        const pnlScore = Math.max(0, (t.pnl || 0) / 1000); // $1K = 1 point
-        const volumeScore = Math.max(0, volume / 10000); // $10K volume = 1 point
-        const rarityScore = Math.floor(pnlScore + volumeScore);
-        
         // Assign tier based on ranking
         const rank = publicTraders.findIndex(trader => trader.proxyWallet === t.proxyWallet) + 1;
+        
+        // Calculate NORMALIZED rarity score 0-1000 (same system for all!)
+        const hasTwitter = !!(t.xUsername);
+        const rarityScore = calculateRarityScore(t.pnl || 0, volume, marketsTraded, rank, hasTwitter);
         let tier = 'B';
         if (rank <= 20) tier = 'S'; // Top 20 = S tier
         else if (rank <= 80) tier = 'A'; // Top 80 = A tier

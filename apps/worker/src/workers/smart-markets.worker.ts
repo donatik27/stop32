@@ -99,10 +99,10 @@ async function updatePinnedMarkets(payload: any) {
       }
     });
     
-    // Limit to TOP-100 traders to avoid RPC overload
+ну     // FIX 2: Increased to TOP-300 traders (was 200) for better market coverage
     const smartTraders = allTraders
       .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
-      .slice(0, 100);
+      .slice(0, 300);
     
     logger.info(`✅ Using TOP-${smartTraders.length} traders for pinned markets analysis`);
     
@@ -153,8 +153,10 @@ async function updatePinnedMarkets(payload: any) {
             question: market.question,
             slug: market.slug || null,
             eventSlug: eventSlug, // ✅ Update eventSlug for existing markets!
+            endDate: market.endDate ? new Date(market.endDate) : null,
             volume: market.volume || null,
-            liquidity: market.liquidity || null
+            liquidity: market.liquidity || null,
+            status: market.closed ? 'CLOSED' : 'OPEN'  // ✅ Update status too!
           }
         });
         
@@ -189,26 +191,48 @@ async function updatePinnedMarkets(payload: any) {
 // Helper: Find parent event slug for a market
 async function findEventSlug(market: any): Promise<string | null> {
   try {
-    // Try to find event by searching with market details
-    if (market.negRiskMarketID) {
-      // Search in active events (closed=false) and recent closed events
-      const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=500');
-      if (eventsRes.ok) {
-        const events = await eventsRes.json();
-        for (const event of events) {
-          if (event.markets && Array.isArray(event.markets)) {
-            const hasMatch = event.markets.some((m: any) => 
-              m.id === market.id || m.negRiskMarketID === market.negRiskMarketID
-            );
-            if (hasMatch) {
-              logger.info(`✅ Found event "${event.title}" (${event.slug}) for market ${market.id}`);
-              return event.slug;
+    if (!market.negRiskMarketID) return null;
+    
+    // STRATEGY 1: Direct fetch by condition_id (most reliable!)
+    try {
+      const clobRes = await fetch(`https://clob.polymarket.com/markets/${market.id}`);
+      if (clobRes.ok) {
+        const clobData = await clobRes.json();
+        if (clobData.condition_id) {
+          // Fetch event by condition_id
+          const eventRes = await fetch(`https://gamma-api.polymarket.com/events?id=${clobData.condition_id}`);
+          if (eventRes.ok) {
+            const events = await eventRes.json();
+            if (events && events[0]) {
+              logger.info(`✅ Found event "${events[0].title}" (${events[0].slug}) via CLOB API`);
+              return events[0].slug;
             }
           }
         }
       }
+    } catch (e) {
+      logger.debug('CLOB API method failed, trying fallback...');
     }
-    logger.warn(`⚠️  No event found for market ${market.id} (negRiskMarketID: ${market.negRiskMarketID})`);
+    
+    // STRATEGY 2: Search in top 500 active events
+    const eventsRes = await fetch('https://gamma-api.polymarket.com/events?limit=500');
+    if (eventsRes.ok) {
+      const events = await eventsRes.json();
+      for (const event of events) {
+        if (event.markets && Array.isArray(event.markets)) {
+          const hasMatch = event.markets.some((m: any) => 
+            String(m.id) === String(market.id) || 
+            m.negRiskMarketID === market.negRiskMarketID
+          );
+          if (hasMatch) {
+            logger.info(`✅ Found event "${event.title}" (${event.slug}) for market ${market.id}`);
+            return event.slug;
+          }
+        }
+      }
+    }
+    
+    logger.warn(`⚠️  No event found for market ${market.id}`);
   } catch (error) {
     logger.warn({ error, marketId: market.id }, 'Failed to find event slug');
   }
@@ -242,12 +266,12 @@ async function discoverNewMarkets(payload: any) {
     logger.info(`   A-tier: ${allTraders.filter((t: any) => t.tier === 'A').length}`);
     logger.info(`   B-tier: ${allTraders.filter((t: any) => t.tier === 'B').length}`);
     
-    // Limit to TOP-100 traders to avoid RPC overload (100 traders × 2 tokens = 200 calls max)
+    // FIX 2: Increased to TOP-300 traders (was 200) for better market coverage (300 traders × 2 tokens = 600 calls)
     const smartTraders = allTraders
       .sort((a: any, b: any) => Number(b.realizedPnl) - Number(a.realizedPnl))
-      .slice(0, 100);
+      .slice(0, 300);
     
-    logger.info(`🎯 Using TOP-${smartTraders.length} traders for analysis`);
+    logger.info(`🎯 Using TOP-${smartTraders.length} traders for analysis (increased for better Alpha Markets coverage)`);
     
     // Fetch top markets (excluding already pinned)
     const pinnedMarketIds = (await prisma.marketSmartStats.findMany({
@@ -255,13 +279,50 @@ async function discoverNewMarkets(payload: any) {
       select: { marketId: true }
     })).map(m => m.marketId);
     
-    const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=50&closed=false&order=volume&ascending=false');
+    // FIX 1: Increase market limit to 500 (was 200) for better coverage
+    const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=500&closed=false&order=volume&ascending=false');
     const allMarkets = await marketsRes.json();
     
-    // Filter out pinned markets
-    const markets = allMarkets.filter((m: any) => !pinnedMarketIds.includes(m.id));
+    // SIMPLE FILTER: Skip only markets that ALREADY ENDED or are CLEARLY RESOLVED
+    // Don't over-filter - we want maximum coverage!
+    const now = Date.now();
+    const markets = allMarkets.filter((m: any) => {
+      // Skip pinned markets (already tracked)
+      if (pinnedMarketIds.includes(m.id)) return false;
+      
+      // Skip explicitly closed markets
+      if (m.closed) return false;
+      
+      // ⚠️ CRITICAL: Skip markets where endDate ALREADY PASSED (in the past)
+      // But ALLOW markets without endDate (multi-outcome, etc.)
+      if (m.endDate) {
+        const endDate = new Date(m.endDate).getTime();
+        if (endDate < now) {
+          logger.debug(`Skipping expired market: ${m.question.slice(0, 40)}... (ended ${new Date(m.endDate).toISOString()})`);
+          return false;
+        }
+      }
+      
+      // Skip ONLY extreme prices (99.5%+ = virtually resolved)
+      if (m.outcomePrices && Array.isArray(m.outcomePrices)) {
+        const prices = m.outcomePrices.map((p: string) => parseFloat(p));
+        const hasExtremePrice = prices.some((p: number) => p >= 0.995 || p <= 0.005);
+        if (hasExtremePrice) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
     
-    logger.info(`📈 Analyzing ${markets.length} new markets...`);
+    logger.info(`📈 Filtered markets: ${markets.length} active (from ${allMarkets.length} total, ${allMarkets.length - markets.length} filtered out)`);
+    logger.info(`   Filters: closed=${allMarkets.filter((m: any) => m.closed).length}, expired=${allMarkets.filter((m: any) => m.endDate && new Date(m.endDate).getTime() < now).length}, extreme_price=${allMarkets.filter((m: any) => {
+      if (m.outcomePrices && Array.isArray(m.outcomePrices)) {
+        const prices = m.outcomePrices.map((p: string) => parseFloat(p));
+        return prices.some((p: number) => p >= 0.995 || p <= 0.005);
+      }
+      return false;
+    }).length}`);
     
     const client = createPublicClient({
       chain: polygon,
@@ -274,8 +335,8 @@ async function discoverNewMarkets(payload: any) {
     
     let discoveredCount = 0;
     
-    // BATCHING: Process 5 markets at a time to avoid memory issues
-    const BATCH_SIZE = 5;
+    // BATCHING: Process 10 markets at a time (increased from 5 for faster processing)
+    const BATCH_SIZE = 10;
     for (let i = 0; i < markets.length; i += BATCH_SIZE) {
       const batch = markets.slice(i, i + BATCH_SIZE);
       logger.info(`📦 Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(markets.length / BATCH_SIZE)} (${batch.length} markets)...`);
@@ -284,8 +345,8 @@ async function discoverNewMarkets(payload: any) {
         try {
           const analysis = await analyzeMarket(client, market, smartTraders);
         
-        // Only save if it has smart traders
-        if (analysis.smartCount > 0) {
+        // Only save if it has at least 2 smart traders (quality threshold)
+        if (analysis.smartCount >= 2) {
           // Check if already exists
           const existing = await prisma.marketSmartStats.findFirst({
             where: {
@@ -318,7 +379,9 @@ async function discoverNewMarkets(payload: any) {
                 question: market.question,
                 slug: market.slug || null,
                 eventSlug: eventSlug,
-                volume: market.volume || null
+                endDate: market.endDate ? new Date(market.endDate) : null,
+                volume: market.volume || null,
+                status: market.closed ? 'CLOSED' : 'OPEN'  // ✅ Update status too!
               }
             });
             
@@ -408,8 +471,8 @@ async function refreshPinnedSelection(payload: any) {
         const endDate = market.endDate ? new Date(market.endDate) : null;
         const daysUntilEnd = endDate ? (endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24) : 0;
         
-        // Must have at least 14 days until end
-        if (daysUntilEnd < 14) return null;
+        // Must have at least 7 days until end (was 14, too strict!)
+        if (daysUntilEnd < 7) return null;
         
         return {
           stat,
@@ -471,6 +534,11 @@ async function analyzeMarket(client: any, market: any, traders: any[]) {
     if (tokenIds.length === 0) {
       throw new Error('No tokenIds');
     }
+    
+    // 🔍 DEBUG: Log market and token info
+    logger.info(`🔬 Analyzing market: ${market.question.slice(0, 50)}...`);
+    logger.info(`   TokenIds: ${tokenIds.join(', ')} (${tokenIds.length} tokens)`);
+    logger.info(`   Traders to check: ${traders.length}`);
   
   // Build multicall
   const calls = [];
@@ -499,23 +567,62 @@ async function analyzeMarket(client: any, market: any, traders: any[]) {
   const tradersWithPositions = [];
   let callIndex = 0;
   
+  // Get current prices for entry price estimation
+  const outcomePrices = market.outcomePrices 
+    ? (typeof market.outcomePrices === 'string' 
+        ? JSON.parse(market.outcomePrices) 
+        : market.outcomePrices)
+    : ['0.5', '0.5'];
+  
+  // Check if this is a YES/NO market (2 tokens) or multi-outcome (3+ tokens)
+  const isYesNoMarket = tokenIds.length === 2;
+  
   for (const trader of traders) {
     let hasPosition = false;
     let totalBalance = 0;
+    const balances: number[] = [];
     
-    for (const tokenId of tokenIds) {
+    // Read all token balances for this trader
+    for (let i = 0; i < tokenIds.length; i++) {
       const returnData = results[1][callIndex];
       const balance = returnData ? Number(formatUnits(BigInt(returnData as string), 6)) : 0;
+      balances.push(balance);
       totalBalance += balance;
       if (balance > 0) hasPosition = true;
       callIndex++;
     }
     
     if (hasPosition) {
-      tradersWithPositions.push({
-        ...trader,
-        balance: totalBalance
-      });
+      // For YES/NO markets, track position side
+      if (isYesNoMarket) {
+        const yesBalance = balances[0];
+        const noBalance = balances[1];
+        const yesPrice = parseFloat(outcomePrices[0] || '0.5');
+        const noPrice = parseFloat(outcomePrices[1] || '0.5');
+        
+        const side = yesBalance > noBalance ? 'YES' : 'NO';
+        const shares = Math.max(yesBalance, noBalance);
+        const entryPrice = side === 'YES' ? yesPrice : noPrice;
+        
+        // 🔍 DEBUG: Log found position
+        logger.info(`   ✅ ${trader.displayName || trader.address.slice(0, 8)}: ${side} ${shares.toFixed(0)} shares @ ${(entryPrice * 100).toFixed(1)}%`);
+        
+        tradersWithPositions.push({
+          ...trader,
+          side,           // ✅ YES or NO
+          shares,         // ✅ Number of shares
+          entryPrice,     // ✅ Current price
+          balance: totalBalance
+        });
+      } else {
+        // Multi-outcome market: just track total balance
+        logger.info(`   ✅ ${trader.displayName || trader.address.slice(0, 8)}: ${totalBalance.toFixed(0)} shares (multi-outcome)`);
+        
+        tradersWithPositions.push({
+          ...trader,
+          balance: totalBalance
+        });
+      }
     }
   }
   
@@ -526,6 +633,13 @@ async function analyzeMarket(client: any, market: any, traders: any[]) {
     return sum + tierWeight;
   }, 0);
   const smartScore = smartWeighted * Math.log(1 + (market.volume || 0) / 1000000);
+  
+  // 🔍 DEBUG: Summary
+  logger.info(`   📊 Found ${smartCount} traders with positions (returning top 6)`);
+  if (smartCount > 0 && isYesNoMarket) {
+    const sample = tradersWithPositions[0];
+    logger.info(`   📝 Sample data: side=${sample.side}, shares=${sample.shares}, entryPrice=${sample.entryPrice}`);
+  }
   
   return {
     smartCount,

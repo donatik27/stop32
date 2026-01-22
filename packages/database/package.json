@@ -14,11 +14,11 @@
   },
   "dependencies": {
     "@prisma/client": "^5.8.0",
+    "@types/node": "^20.10.6",
     "prisma": "^5.8.0",
     "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "@types/node": "^20.10.6",
     "tsx": "^4.7.0"
   }
 }

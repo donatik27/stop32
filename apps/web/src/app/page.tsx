@@ -268,7 +268,7 @@ export default function HomePage() {
             <Users className="h-4 w-4 text-primary" />
           </div>
           <p className="text-4xl font-bold text-white mb-2 relative z-10">
-            {loading ? '...' : stats.totalTraders}
+            {loading ? '...' : `${Math.floor(stats.totalTraders / 100) * 100}+`}
           </p>
           <p className="text-xs text-muted-foreground font-mono">&gt; TRACKED_LIVE</p>
         </div>
@@ -292,7 +292,7 @@ export default function HomePage() {
             <Target className="h-4 w-4 text-purple-400" />
           </div>
           <p className="text-4xl font-bold text-purple-400 mb-2 relative z-10">
-            {loading ? '...' : stats.smartMarkets > 0 ? '10+' : '0'}
+            {loading ? '...' : stats.smartMarkets}
           </p>
           <p className="text-xs text-muted-foreground font-mono">&gt; WITH_S/A_TRADERS</p>
         </div>
