@@ -17,10 +17,21 @@ interface Alert {
   marketSlug?: string // For VIEW button link
 }
 
+// Clean outcome suffix from multi-outcome market slugs
+// Example: "elon-musk-tweets-500-519" → "elon-musk-tweets"
+function cleanEventSlug(slug: string): string {
+  // Remove outcome suffix pattern: -XXX-XXX (e.g., -500-519, -200-219)
+  return slug.replace(/-\d{3}-\d{3}$/, '')
+}
+
 // Build Polymarket link with referral
 function getPolymarketLink(marketSlug?: string): string {
   if (!marketSlug) return 'https://polymarket.com'
-  return `https://polymarket.com/event/${marketSlug}?via=${REFERRAL_CODE}`
+  
+  // Clean slug from outcome suffix (for multi-outcome markets)
+  const cleanSlug = cleanEventSlug(marketSlug)
+  
+  return `https://polymarket.com/event/${cleanSlug}?via=${REFERRAL_CODE}`
 }
 
 export default function AlertsPage() {
