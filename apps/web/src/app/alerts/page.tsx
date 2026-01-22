@@ -5,7 +5,7 @@ import { Bell, TrendingUp, Zap, DollarSign, Activity } from 'lucide-react'
 
 interface Alert {
   id: string
-  type: 'whale' | 'smart_trader' | 'hot_market' | 'price_move'
+  type: 'whale' | 'price_move'
   title: string
   description: string
   timestamp: Date
@@ -67,80 +67,71 @@ export default function AlertsPage() {
     }
   }
 
-  // Generate demo alerts (fallback)
+  // Generate demo alerts (fallback) - ONLY WHALES + PRICE MOVES
   const loadDemoAlerts = () => {
     const demoAlerts: Alert[] = [
       {
         id: '1',
         type: 'whale',
         title: 'WHALE ALERT',
-        description: 'Theo4 placed $125K on "Trump wins 2024" at 61¢',
-        timestamp: new Date(Date.now() - 2 * 60 * 1000),
-        severity: 'high',
+        description: 'Epstein blackmail evidence released in 2025? - Yes @ 0.999 (≈ $125,796,677) 0x44c1...ebc1',
+        timestamp: new Date(Date.now() - 4 * 60 * 1000),
+        severity: 'low',
         icon: '🐋'
       },
       {
         id: '2',
-        type: 'smart_trader',
-        title: 'SMART MONEY FLOW',
-        description: '3 S-tier traders bought "ETH >$4K" in last 10 min',
-        timestamp: new Date(Date.now() - 5 * 60 * 1000),
-        severity: 'high',
-        icon: '🧠'
-      },
-      {
-        id: '3',
-        type: 'hot_market',
-        title: 'MARKET HEATING UP',
-        description: 'La Liga Winner: 8 smart traders active (+$250K volume)',
-        timestamp: new Date(Date.now() - 12 * 60 * 1000),
-        severity: 'medium',
-        icon: '🔥'
-      },
-      {
-        id: '4',
-        type: 'price_move',
-        title: 'PRICE SPIKE',
-        description: 'Bitcoin >$120K moved from 45¢ → 67¢ (+48% in 1h)',
-        timestamp: new Date(Date.now() - 18 * 60 * 1000),
-        severity: 'medium',
-        icon: '📈'
-      },
-      {
-        id: '5',
         type: 'whale',
         title: 'WHALE ALERT',
-        description: 'gopfan2 placed $89K on "S&P 500 ATH Jan 2025"',
-        timestamp: new Date(Date.now() - 25 * 60 * 1000),
+        description: 'Epstein blackmail evidence released in 2025? - Yes @ 0.999 (≈ $215,615,803) 0x7072...3413',
+        timestamp: new Date(Date.now() - 4 * 60 * 1000),
         severity: 'high',
         icon: '🐋'
       },
       {
+        id: '3',
+        type: 'price_move',
+        title: 'PRICE MOVE UP',
+        description: 'Will Elon Musk post 500-519 tweets from January 16 to January 23, 2026? - Yes: 0.007 → 0.008 (+18.5% in 4s)',
+        timestamp: new Date(Date.now() - 4 * 60 * 1000),
+        severity: 'medium',
+        icon: '📊'
+      },
+      {
+        id: '4',
+        type: 'price_move',
+        title: 'PRICE MOVE UP',
+        description: 'Will Édouard Philippe win the 2027 French presidential election? - Yes: 0.140 → 0.160 (+14.3% in 10s)',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000),
+        severity: 'medium',
+        icon: '📊'
+      },
+      {
+        id: '5',
+        type: 'price_move',
+        title: 'PRICE MOVE UP',
+        description: 'Will CME Group (CME) beat quarterly earnings? - Yes: 0.560 → 0.920 (+64.3% in 6s)',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000),
+        severity: 'high',
+        icon: '📊'
+      },
+      {
         id: '6',
-        type: 'smart_trader',
-        title: 'SMART MONEY FLOW',
-        description: 'ImJustKen bought "Lakers win NBA" at 12¢ (+$15K)',
-        timestamp: new Date(Date.now() - 32 * 60 * 1000),
-        severity: 'low',
-        icon: '🧠'
+        type: 'price_move',
+        title: 'PRICE MOVE UP',
+        description: 'Will Israel strike ≥1 countries in January 2026? - Yes: 0.650 → 0.730 (+12.3% in 10s)',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000),
+        severity: 'medium',
+        icon: '📊'
       },
       {
         id: '7',
-        type: 'hot_market',
-        title: 'TRENDING MARKET',
-        description: 'Democratic Nominee 2028: 12 smart traders (+$180K)',
-        timestamp: new Date(Date.now() - 45 * 60 * 1000),
-        severity: 'medium',
-        icon: '🔥'
-      },
-      {
-        id: '8',
         type: 'price_move',
-        title: 'PRICE DROP',
-        description: 'Tesla $500 EOY dropped from 78¢ → 52¢ (-33%)',
-        timestamp: new Date(Date.now() - 58 * 60 * 1000),
-        severity: 'low',
-        icon: '📉'
+        title: 'PRICE MOVE UP',
+        description: 'Will Elon Musk post 520-539 tweets from January 20 to January 27, 2026? - Yes: 0.020 → 0.023 (+17.0% in nulls)',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000),
+        severity: 'medium',
+        icon: '📊'
       },
     ]
     setAlerts(demoAlerts)
@@ -206,29 +197,27 @@ export default function AlertsPage() {
         </p>
       </div>
 
-      {/* Filters */}
+      {/* Filters - ONLY 2 TYPES */}
       <div className="bg-card pixel-border border-white/20 p-5 mb-6 flex flex-wrap gap-4 items-center relative">
         <div className="absolute top-2 right-2 text-primary text-xs font-mono animate-pulse">FILTER.SYS</div>
         <div className="flex items-center gap-3">
           <span className="text-sm font-mono text-primary">ALERT_TYPE:</span>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-3">
             {[
               { id: 'all', label: 'ALL', icon: '📡' },
-              { id: 'whale', label: 'WHALES', icon: '🐋' },
-              { id: 'smart_trader', label: 'SMART $', icon: '🧠' },
-              { id: 'hot_market', label: 'HOT', icon: '🔥' },
-              { id: 'price_move', label: 'PRICE', icon: '📊' },
+              { id: 'whale', label: 'WHALE MOVES', icon: '🐋' },
+              { id: 'price_move', label: 'PRICE MOVERS', icon: '📊' },
             ].map((type) => (
               <button
                 key={type.id}
                 onClick={() => setFilter(type.id)}
-                className={`px-3 py-1 text-sm font-bold uppercase transition-all pixel-border flex items-center gap-2 ${
+                className={`px-4 py-2 text-sm font-bold uppercase transition-all pixel-border flex items-center gap-2 ${
                   filter === type.id
                     ? 'bg-primary text-black border-primary'
                     : 'bg-transparent text-white border-white/30 hover:border-primary hover:text-primary'
                 }`}
               >
-                <span>{type.icon}</span>
+                <span className="text-lg">{type.icon}</span>
                 {type.label}
               </button>
             ))}
@@ -236,22 +225,23 @@ export default function AlertsPage() {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      {/* Stats Bar - ONLY 2 TYPES */}
+      <div className="grid grid-cols-2 gap-6 mb-6">
         {[
-          { label: 'WHALE MOVES', value: alerts.filter(a => a.type === 'whale').length, icon: '🐋', color: 'text-red-500' },
-          { label: 'SMART TRADES', value: alerts.filter(a => a.type === 'smart_trader').length, icon: '🧠', color: 'text-blue-500' },
-          { label: 'HOT MARKETS', value: alerts.filter(a => a.type === 'hot_market').length, icon: '🔥', color: 'text-yellow-500' },
-          { label: 'PRICE MOVES', value: alerts.filter(a => a.type === 'price_move').length, icon: '📊', color: 'text-green-500' },
+          { label: 'WHALE MOVES', value: alerts.filter(a => a.type === 'whale').length, icon: '🐋', color: 'text-red-500', desc: 'Big trades >$100K' },
+          { label: 'PRICE MOVERS', value: alerts.filter(a => a.type === 'price_move').length, icon: '📊', color: 'text-green-500', desc: 'Sharp price changes ±10%' },
         ].map((stat) => (
-          <div key={stat.label} className="bg-card pixel-border border-white/10 p-4 relative overflow-hidden group hover:border-primary/50 transition-all">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-all"></div>
+          <div key={stat.label} className="bg-card pixel-border border-white/10 p-6 relative overflow-hidden group hover:border-primary/50 transition-all">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-all"></div>
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-muted-foreground">{stat.label}</span>
-                <span className="text-xl">{stat.icon}</span>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <span className="text-xs font-mono text-muted-foreground block mb-1">{stat.label}</span>
+                  <span className="text-xs text-muted-foreground/60">{stat.desc}</span>
+                </div>
+                <span className="text-4xl">{stat.icon}</span>
               </div>
-              <div className={`text-3xl font-bold ${stat.color} font-mono`}>{stat.value}</div>
+              <div className={`text-5xl font-bold ${stat.color} font-mono`}>{stat.value}</div>
             </div>
           </div>
         ))}
