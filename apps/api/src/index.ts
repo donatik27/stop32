@@ -698,6 +698,145 @@ app.get('/api/trader/:address', async (req, res) => {
   }
 });
 
+// Get trader positions from Polymarket CLOB API
+app.get('/api/trader/:address/positions', async (req, res) => {
+  const { address } = req.params;
+  
+  try {
+    // Fetch positions from Polymarket CLOB API
+    const positionsRes = await fetch(`https://clob.polymarket.com/positions/${address}`);
+    
+    if (!positionsRes.ok) {
+      return res.json([]);
+    }
+    
+    const positionsData = await positionsRes.json();
+    
+    // Transform positions to include market info
+    const positions = await Promise.all(
+      (positionsData.data || []).slice(0, 10).map(async (pos: any) => {
+        try {
+          // Fetch market details from gamma API
+          const marketRes = await fetch(
+            `https://gamma-api.polymarket.com/markets/${pos.market}`
+          );
+          
+          let marketInfo: any = {};
+          if (marketRes.ok) {
+            marketInfo = await marketRes.json();
+          }
+          
+          const outcome = pos.outcome || 'YES';
+          const shares = parseFloat(pos.size || '0');
+          const avgPrice = parseFloat(pos.avg_entry_price || '0');
+          const currentPrice = parseFloat(marketInfo.outcome_prices?.[outcome] || pos.current_price || '0.5');
+          const value = shares * currentPrice;
+          const unrealizedPnL = shares * (currentPrice - avgPrice);
+          
+          return {
+            marketId: pos.market,
+            question: marketInfo.question || pos.market,
+            outcome,
+            shares,
+            avgPrice,
+            currentPrice,
+            unrealizedPnL,
+            value,
+            category: marketInfo.category || 'Unknown',
+            image: marketInfo.image || null,
+          };
+        } catch (e) {
+          return null;
+        }
+      })
+    );
+    
+    // Filter out null positions and sort by value
+    const validPositions = positions
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+      .sort((a, b) => b.value - a.value);
+    
+    res.json(validPositions);
+  } catch (error: any) {
+    console.error('Error fetching positions:', error);
+    res.json([]);
+  }
+});
+
+// Get trader activity stats
+app.get('/api/trader/:address/activity', async (req, res) => {
+  const { address } = req.params;
+  
+  try {
+    // Fetch recent trades from Polymarket
+    const tradesRes = await fetch(
+      `https://data-api.polymarket.com/v1/trades?user=${address}&limit=100`
+    );
+    
+    if (!tradesRes.ok) {
+      return res.json({
+        lastTrade: null,
+        totalTrades: 0,
+        activeDays: 0,
+        categoryBreakdown: [],
+      });
+    }
+    
+    const trades = await tradesRes.json();
+    
+    // Calculate stats
+    const lastTrade = trades.length > 0 ? trades[0].timestamp : null;
+    const totalTrades = trades.length;
+    
+    // Count unique days with trades
+    const tradeDays = new Set(
+      trades.map((t: any) => new Date(t.timestamp).toDateString())
+    );
+    const activeDays = tradeDays.size;
+    
+    // Category breakdown from trades
+    const categoryMap = new Map<string, { count: number; volume: number }>();
+    
+    for (const trade of trades) {
+      const category = trade.market_category || 'Unknown';
+      const volume = parseFloat(trade.size || '0') * parseFloat(trade.price || '0');
+      
+      if (categoryMap.has(category)) {
+        const existing = categoryMap.get(category)!;
+        existing.count++;
+        existing.volume += volume;
+      } else {
+        categoryMap.set(category, { count: 1, volume });
+      }
+    }
+    
+    const categoryBreakdown = Array.from(categoryMap.entries())
+      .map(([category, stats]) => ({
+        category,
+        count: stats.count,
+        volume: stats.volume,
+        percentage: (stats.count / totalTrades) * 100,
+      }))
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5); // Top 5 categories
+    
+    res.json({
+      lastTrade,
+      totalTrades,
+      activeDays,
+      categoryBreakdown,
+    });
+  } catch (error: any) {
+    console.error('Error fetching activity:', error);
+    res.json({
+      lastTrade: null,
+      totalTrades: 0,
+      activeDays: 0,
+      categoryBreakdown: [],
+    });
+  }
+});
+
 app.get('/api/market-price', async (req, res) => {
   try {
     const marketId = req.query.marketId as string | undefined;
