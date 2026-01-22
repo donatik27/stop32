@@ -1,10 +1,14 @@
 import express from 'express';
 import { prisma } from '@polymarket/database';
+import telegramAlertsRouter from './telegram-alerts';
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 3001;
 
 app.use(express.json());
+
+// Telegram alerts integration
+app.use('/api/telegram-alerts', telegramAlertsRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });

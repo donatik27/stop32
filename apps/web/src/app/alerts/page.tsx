@@ -16,9 +16,44 @@ interface Alert {
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [filter, setFilter] = useState<string>('all')
+  const [loading, setLoading] = useState(true)
+  const [useDemo, setUseDemo] = useState(false)
 
-  // Generate demo alerts (replace with real API data later)
-  useEffect(() => {
+  // Fetch real alerts from API
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/telegram-alerts?limit=50')
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch alerts, using demo data')
+        setUseDemo(true)
+        loadDemoAlerts()
+        return
+      }
+      
+      const data = await response.json()
+      
+      if (!data || data.length === 0) {
+        console.warn('No alerts found, using demo data')
+        setUseDemo(true)
+        loadDemoAlerts()
+        return
+      }
+      
+      setAlerts(data)
+      setUseDemo(false)
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error)
+      setUseDemo(true)
+      loadDemoAlerts()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Generate demo alerts (fallback)
+  const loadDemoAlerts = () => {
     const demoAlerts: Alert[] = [
       {
         id: '1',
@@ -94,6 +129,18 @@ export default function AlertsPage() {
       },
     ]
     setAlerts(demoAlerts)
+  }
+
+  useEffect(() => {
+    // Initial fetch
+    fetchAlerts()
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(() => {
+      fetchAlerts()
+    }, 10000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const filteredAlerts = filter === 'all' 
@@ -252,13 +299,20 @@ export default function AlertsPage() {
       )}
 
       {/* Footer note */}
-      <div className="mt-8 bg-card pixel-border border-primary/30 p-4">
+      <div className={`mt-8 bg-card pixel-border p-4 ${useDemo ? 'border-yellow-500/30' : 'border-primary/30'}`}>
         <div className="flex items-center gap-3">
-          <span className="text-primary text-xl animate-pulse">⚡</span>
+          <span className={`text-xl animate-pulse ${useDemo ? 'text-yellow-500' : 'text-primary'}`}>
+            {useDemo ? '🔧' : '⚡'}
+          </span>
           <div>
-            <p className="text-sm font-mono text-primary">LIVE MODE ACTIVE</p>
+            <p className={`text-sm font-mono ${useDemo ? 'text-yellow-500' : 'text-primary'}`}>
+              {useDemo ? 'DEMO MODE' : 'LIVE MODE ACTIVE'}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Alerts update in real-time. Currently showing demo data - connect to smart markets feed for live alerts.
+              {useDemo 
+                ? 'Showing demo data. Connect Telegram bot to see real-time alerts from Polymarket.'
+                : `Real-time alerts from Telegram bot. Auto-refresh every 10 seconds. ${alerts.length} total alerts.`
+              }
             </p>
           </div>
         </div>
