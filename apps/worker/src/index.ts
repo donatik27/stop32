@@ -4,7 +4,7 @@ import { startWorkers } from './workers';
 import { scheduleJobs } from './scheduler';
 import { queues } from './lib/queue';
 
-// Trigger Railway rebuild v6 - NEW X TRADERS (33 added to map!)
+// Trigger Railway rebuild v7 - AUTO FIX SCORES ON STARTUP!
 async function main() {
   logger.info('🚀 Starting Polymarket Worker...');
 
@@ -15,6 +15,15 @@ async function main() {
   // Schedule recurring jobs
   await scheduleJobs();
   logger.info('✅ Jobs scheduled');
+
+  // 🔧 FIX BROKEN SCORES - run score recalculation immediately!
+  logger.info('🔧 Queuing score recalculation (fix > 1000 scores)...');
+  await queues.scoring.add(
+    'fix-broken-scores-startup',
+    { type: 'recalculate-all-scores' },
+    { priority: 10, delay: 5000 } // Run after 5 seconds
+  );
+  logger.info('✅ Score fix queued (will normalize all to 0-1000)');
 
   // 🔥 IMMEDIATE FIRST RUN - don't wait 5 minutes!
   logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
