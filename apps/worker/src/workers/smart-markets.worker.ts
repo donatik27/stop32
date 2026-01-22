@@ -112,6 +112,32 @@ async function discoverAlphaMarkets() {
   logger.info('🚀 STARTING ALPHA MARKETS DISCOVERY (REBUILT VERSION)');
   
   try {
+    // STEP 0: Clean up old duplicates (keep only most recent per market)
+    logger.info('🧹 STEP 0: Cleaning up old duplicates...');
+    const allStats = await prisma.marketSmartStats.findMany({
+      orderBy: { computedAt: 'desc' }
+    });
+    
+    const seen = new Set<string>();
+    const toDelete: number[] = [];
+    
+    for (const stat of allStats) {
+      if (seen.has(stat.marketId)) {
+        toDelete.push(stat.id);
+      } else {
+        seen.add(stat.marketId);
+      }
+    }
+    
+    if (toDelete.length > 0) {
+      await prisma.marketSmartStats.deleteMany({
+        where: { id: { in: toDelete } }
+      });
+      logger.info(`   ✅ Deleted ${toDelete.length} duplicate records`);
+    } else {
+      logger.info(`   ✅ No duplicates found`);
+    }
+    
     // STEP 1: Fetch TOP S/A/B tier traders from database
     logger.info('📥 STEP 1: Loading TOP S/A/B tier traders...');
     const allTraders = await prisma.trader.findMany({
@@ -359,18 +385,19 @@ async function analyzeMarket(
 
 async function saveMarket(market: any, analysis: MarketAnalysis) {
   
-  // Check if this market was recently analyzed (skip if analyzed in last hour)
+  // Check if this market was recently analyzed (skip if analyzed in last 24 hours)
   const recentAnalysis = await prisma.marketSmartStats.findFirst({
     where: {
       marketId: market.id,
       computedAt: {
-        gte: new Date(Date.now() - 60 * 60 * 1000) // Last 1 hour
+        gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
       }
     }
   });
   
   if (recentAnalysis) {
-    logger.info(`      ⏭️  Skipping save - market analyzed ${Math.round((Date.now() - recentAnalysis.computedAt.getTime()) / 1000 / 60)}min ago`);
+    const hoursAgo = Math.round((Date.now() - recentAnalysis.computedAt.getTime()) / 1000 / 60 / 60);
+    logger.info(`      ⏭️  Skipping save - market analyzed ${hoursAgo}h ago`);
     return;
   }
   
