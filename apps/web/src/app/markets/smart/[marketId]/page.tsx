@@ -60,6 +60,23 @@ interface MultiOutcomePosition {
   smartTraderCount: number
 }
 
+// Extract team/player names from sports questions like "Red Wings vs Maple Leafs"
+function extractSportsOutcomes(question: string): string[] | null {
+  // Match "Team A vs Team B" or "Team A v. Team B" or "Team A v Team B"
+  const vsMatch = question.match(/(?:Will\s+(?:the\s+)?)?(.+?)\s+(?:vs\.?|v\.)\s+(.+?)(?:\s+win|\?|$)/i)
+  if (vsMatch) {
+    return [vsMatch[1].trim(), vsMatch[2].trim()]
+  }
+  
+  // Match "Team A or Team B" pattern
+  const orMatch = question.match(/(?:Will\s+)?(.+?)\s+or\s+(.+?)(?:\s+win|\?|$)/i)
+  if (orMatch) {
+    return [orMatch[1].trim(), orMatch[2].trim()]
+  }
+  
+  return null
+}
+
 // Smart function to extract key info from outcome titles
 function extractOutcomeShortName(outcomeTitle: string, allOutcomes: MultiOutcomePosition[]): string {
   // Try to extract name after "nominate" or "elect" or "appoint"
@@ -849,36 +866,42 @@ export default function SmartMarketDetailPage() {
                 )
               })
             ) : (
-              // Binary market: Show YES/NO
-              (Array.isArray(market.outcomes) ? market.outcomes : ['YES', 'NO']).map((outcome, idx) => {
-                let price = 0.5
-                if (market.outcomePrices?.[idx]) {
-                  const parsed = parseFloat(market.outcomePrices[idx])
-                  price = isNaN(parsed) ? 0.5 : parsed
-                }
-                const percentage = (price * 100).toFixed(1)
-                const isYes = outcome.toLowerCase() === 'yes'
-                const isNo = outcome.toLowerCase() === 'no'
+              // Binary market: Try to extract team/player names, fallback to YES/NO
+              (() => {
+                // Try to extract sports team names from question
+                const sportsOutcomes = extractSportsOutcomes(market.question)
+                const displayOutcomes = sportsOutcomes || 
+                  (Array.isArray(market.outcomes) ? market.outcomes : ['YES', 'NO'])
+                
+                return displayOutcomes.map((outcome, idx) => {
+                  let price = 0.5
+                  if (market.outcomePrices?.[idx]) {
+                    const parsed = parseFloat(market.outcomePrices[idx])
+                    price = isNaN(parsed) ? 0.5 : parsed
+                  }
+                  const percentage = (price * 100).toFixed(1)
+                  const isYes = outcome.toLowerCase() === 'yes'
+                  const isNo = outcome.toLowerCase() === 'no'
 
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-black/40 pixel-border p-6 hover:scale-105 transition-all ${
-                      isYes ? 'border-green-500/50 hover:border-green-500' :
-                      isNo ? 'border-red-500/50 hover:border-red-500' :
-                      'border-white/20 hover:border-white/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className={`text-lg font-bold ${
-                        isYes ? 'text-green-500' :
-                        isNo ? 'text-red-500' :
-                        'text-white'
-                      }`}>
-                        {outcome}
-                      </h3>
-                      <span className="text-xs text-muted-foreground">#{idx + 1}</span>
-                    </div>
+                  return (
+                    <div
+                      key={idx}
+                      className={`bg-black/40 pixel-border p-6 hover:scale-105 transition-all ${
+                        isYes ? 'border-green-500/50 hover:border-green-500' :
+                        isNo ? 'border-red-500/50 hover:border-red-500' :
+                        'border-white/20 hover:border-white/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className={`text-lg font-bold ${
+                          isYes ? 'text-green-500' :
+                          isNo ? 'text-red-500' :
+                          'text-white'
+                        }`}>
+                          {outcome}
+                        </h3>
+                        <span className="text-xs text-muted-foreground">#{idx + 1}</span>
+                      </div>
 
                     <div className="mb-3">
                       <div className="text-4xl font-bold text-white mb-1">
@@ -901,8 +924,9 @@ export default function SmartMarketDetailPage() {
                       />
                     </div>
                   </div>
-                )
-              })
+                  )
+                })
+              })()
             )}
           </div>
         </div>
