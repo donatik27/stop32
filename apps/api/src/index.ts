@@ -794,11 +794,45 @@ app.get('/api/trader/:address/activity', async (req, res) => {
     );
     const activeDays = tradeDays.size;
     
+    // Helper to detect category from trade title
+    const detectCategory = (title: string): string => {
+      const t = title.toLowerCase();
+      
+      // Crypto keywords
+      if (t.includes('bitcoin') || t.includes('btc') || t.includes('ethereum') || 
+          t.includes('eth') || t.includes('crypto') || t.includes('solana') ||
+          t.includes('dogecoin') || t.includes('xrp')) {
+        return 'Crypto';
+      }
+      
+      // Politics keywords
+      if (t.includes('trump') || t.includes('biden') || t.includes('election') ||
+          t.includes('president') || t.includes('congress') || t.includes('senate') ||
+          t.includes('governor') || t.includes('political') || t.includes('white house')) {
+        return 'Politics';
+      }
+      
+      // Sports keywords
+      if (t.includes(' fc ') || t.includes('nfl') || t.includes('nba') || 
+          t.includes('football') || t.includes('basketball') || t.includes('soccer') ||
+          t.includes('win on') || t.includes('championship') || t.includes('super bowl')) {
+        return 'Sports';
+      }
+      
+      // Pop Culture
+      if (t.includes('movie') || t.includes('oscars') || t.includes('grammy') ||
+          t.includes('celebrity') || t.includes('box office')) {
+        return 'Pop Culture';
+      }
+      
+      return 'Other';
+    };
+    
     // Category breakdown from trades
     const categoryMap = new Map<string, { count: number; volume: number }>();
     
     for (const trade of trades) {
-      const category = trade.market_category || 'Unknown';
+      const category = detectCategory(trade.title || '');
       const volume = parseFloat(trade.size || '0') * parseFloat(trade.price || '0');
       
       if (categoryMap.has(category)) {
