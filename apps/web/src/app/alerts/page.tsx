@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Bell, TrendingUp, Zap, DollarSign, Activity } from 'lucide-react'
 
+// 🔗 Polymarket Referral Code (same as API redirect)
+const REFERRAL_CODE = '01k'
+
 interface Alert {
   id: string
   type: 'whale' | 'price_move'
@@ -11,6 +14,13 @@ interface Alert {
   timestamp: Date
   severity: 'high' | 'medium' | 'low'
   icon: string
+  marketSlug?: string // For VIEW button link
+}
+
+// Build Polymarket link with referral
+function getPolymarketLink(marketSlug?: string): string {
+  if (!marketSlug) return 'https://polymarket.com'
+  return `https://polymarket.com/event/${marketSlug}?via=${REFERRAL_CODE}`
 }
 
 export default function AlertsPage() {
@@ -50,9 +60,10 @@ export default function AlertsPage() {
         return
       }
       
-      // Parse timestamps
-      const parsedData = data.map(alert => ({
+      // Parse timestamps and map market_slug to marketSlug
+      const parsedData = data.map((alert: any) => ({
         ...alert,
+        marketSlug: alert.market_slug || alert.marketSlug, // Support both formats
         timestamp: new Date(alert.timestamp)
       }))
       
@@ -77,7 +88,8 @@ export default function AlertsPage() {
         description: 'Epstein blackmail evidence released in 2025? - Yes @ 0.999 (≈ $125,796,677) 0x44c1...ebc1',
         timestamp: new Date(Date.now() - 4 * 60 * 1000),
         severity: 'low',
-        icon: '🐋'
+        icon: '🐋',
+        marketSlug: 'epstein-blackmail-evidence-released-in-2025'
       },
       {
         id: '2',
@@ -86,7 +98,8 @@ export default function AlertsPage() {
         description: 'Epstein blackmail evidence released in 2025? - Yes @ 0.999 (≈ $215,615,803) 0x7072...3413',
         timestamp: new Date(Date.now() - 4 * 60 * 1000),
         severity: 'high',
-        icon: '🐋'
+        icon: '🐋',
+        marketSlug: 'epstein-blackmail-evidence-released-in-2025'
       },
       {
         id: '3',
@@ -95,7 +108,8 @@ export default function AlertsPage() {
         description: 'Will Elon Musk post 500-519 tweets from January 16 to January 23, 2026? - Yes: 0.007 → 0.008 (+18.5% in 4s)',
         timestamp: new Date(Date.now() - 4 * 60 * 1000),
         severity: 'medium',
-        icon: '📊'
+        icon: '📊',
+        marketSlug: 'will-elon-musk-post-500-519-tweets-from-january-16-to-january-23-2026'
       },
       {
         id: '4',
@@ -104,7 +118,8 @@ export default function AlertsPage() {
         description: 'Will Édouard Philippe win the 2027 French presidential election? - Yes: 0.140 → 0.160 (+14.3% in 10s)',
         timestamp: new Date(Date.now() - 5 * 60 * 1000),
         severity: 'medium',
-        icon: '📊'
+        icon: '📊',
+        marketSlug: 'will-edouard-philippe-win-the-2027-french-presidential-election'
       },
       {
         id: '5',
@@ -113,7 +128,8 @@ export default function AlertsPage() {
         description: 'Will CME Group (CME) beat quarterly earnings? - Yes: 0.560 → 0.920 (+64.3% in 6s)',
         timestamp: new Date(Date.now() - 5 * 60 * 1000),
         severity: 'high',
-        icon: '📊'
+        icon: '📊',
+        marketSlug: 'will-cme-group-cme-beat-quarterly-earnings'
       },
       {
         id: '6',
@@ -122,7 +138,8 @@ export default function AlertsPage() {
         description: 'Will Israel strike ≥1 countries in January 2026? - Yes: 0.650 → 0.730 (+12.3% in 10s)',
         timestamp: new Date(Date.now() - 5 * 60 * 1000),
         severity: 'medium',
-        icon: '📊'
+        icon: '📊',
+        marketSlug: 'will-israel-strike-1-countries-in-january-2026'
       },
       {
         id: '7',
@@ -131,7 +148,8 @@ export default function AlertsPage() {
         description: 'Will Elon Musk post 520-539 tweets from January 20 to January 27, 2026? - Yes: 0.020 → 0.023 (+17.0% in nulls)',
         timestamp: new Date(Date.now() - 5 * 60 * 1000),
         severity: 'medium',
-        icon: '📊'
+        icon: '📊',
+        marketSlug: 'will-elon-musk-post-520-539-tweets-from-january-20-to-january-27-2026'
       },
     ]
     setAlerts(demoAlerts)
@@ -291,7 +309,10 @@ export default function AlertsPage() {
 
               {/* Action buttons */}
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold uppercase pixel-border transition-all">
+                <button 
+                  onClick={() => window.open(getPolymarketLink(alert.marketSlug), '_blank')}
+                  className="px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold uppercase pixel-border transition-all hover:scale-105"
+                >
                   VIEW
                 </button>
               </div>
