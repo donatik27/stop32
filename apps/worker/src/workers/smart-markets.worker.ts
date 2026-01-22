@@ -282,29 +282,27 @@ async function discoverNewMarkets(payload: any) {
     const marketsRes = await fetch('https://gamma-api.polymarket.com/markets?limit=200&closed=false&order=volume&ascending=false');
     const allMarkets = await marketsRes.json();
     
-    // Filter out:
-    // 1. Pinned markets (already tracked separately)
-    // 2. Closed/resolved markets
-    // 3. Markets with 99%+ price (already decided)
-    // 4. Markets with endDate in the past
+    // SIMPLE FILTER: Skip only markets that ALREADY ENDED or are CLEARLY RESOLVED
+    // Don't over-filter - we want maximum coverage!
     const now = Date.now();
     const markets = allMarkets.filter((m: any) => {
-      // Skip pinned markets
+      // Skip pinned markets (already tracked)
       if (pinnedMarketIds.includes(m.id)) return false;
       
-      // Skip closed markets
+      // Skip explicitly closed markets
       if (m.closed) return false;
       
-      // Skip markets where endDate has passed
+      // ⚠️ CRITICAL: Skip markets where endDate ALREADY PASSED (in the past)
+      // But ALLOW markets without endDate (multi-outcome, etc.)
       if (m.endDate) {
         const endDate = new Date(m.endDate).getTime();
         if (endDate < now) {
+          logger.debug(`Skipping expired market: ${m.question.slice(0, 40)}... (ended ${new Date(m.endDate).toISOString()})`);
           return false;
         }
       }
       
-      // Skip markets with VERY extreme prices (99.5%+ = clearly resolved)
-      // Allow 90-99% markets as they can still be tradeable
+      // Skip ONLY extreme prices (99.5%+ = virtually resolved)
       if (m.outcomePrices && Array.isArray(m.outcomePrices)) {
         const prices = m.outcomePrices.map((p: string) => parseFloat(p));
         const hasExtremePrice = prices.some((p: number) => p >= 0.995 || p <= 0.005);
