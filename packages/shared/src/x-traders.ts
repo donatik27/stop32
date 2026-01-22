@@ -49,7 +49,7 @@ export const X_TRADERS_STATIC: Record<string, { address: string; country?: strin
   "qlonline": { address: "0x27692dfbab9c9fcbe7a384d0a16b7c97170a5ccc", country: "Taiwan" },
   "r_gopfan": { address: "0xf2f6af4f27ec2dcf4072095ab804016e14cd5817", country: "Germany" },
   "Roflan_ludoman": { address: "0xfcf2378f20cf408d077c21e731272f21cccea469", country: "Uzbekistan" },
-  "RomaReyes8": { address: "0x8fe87f8cfff3a80e95f98c645dbda5c0a4aefc24" },
+  "RomaReyes8": { address: "0x8fe87f8cfff3a80e95f98c645dbda5c0a4aefc24", country: "Thailand" },
   "SchrodingerBet": { address: "0x5a1cd342c117a4edb1e283a306ccfd60a3d4970a", country: "Europe" },
   "scottonPoly": { address: "0x000d257d2dc7616feaef4ae0f14600fdf50a758e", country: "Hong Kong" },
   "sorcerermoney": { address: "0xeb6f0a13ea8c5a7a0514c25495adbe815c1025f0", country: "Ireland" },
@@ -116,6 +116,23 @@ export const X_TRADERS_STATIC: Record<string, { address: string; country?: strin
   "UatKeeh": { address: "0x2e4d05beafd81a6e85bc0c6a94820d61ef34f703", country: "Japan" },
   "xiaoshu860": { address: "0x630519aed8ebc5e0e08a95f4e83b0ae541c09d0b", country: "Hong Kong" },
   "xK0neko": { address: "0xf0ed9e68e6cd3ee712260abeaec32de56a7d47d8", country: "North America" },
+  
+  // Added batch 4 - 16 new traders from leaderboard with REAL addresses + locations
+  "yuanshuai679722": { address: "0xc94a2031b8b4cc4cf77eac0fd0e0b982b7b29401", country: "Hong Kong" },
+  "CarOnPolymarket": { address: "0x7c3db723f1d4d8cb9c550095203b686cb11e5c6b", country: "Europe" },
+  "yElff_": { address: "0xd6966eb1ae7b52320ba7ab1016680198c9e08a49", country: "United States" },
+  "euanker": { address: "0xdd225a03cd7ed89e3931906c67c75ab31cf89ef1", country: "Europe" },
+  "hpbaby222": { address: "0x06df2352cb9d16fa0410375cfa36b5bbc6203b05", country: "Hong Kong" },
+  "Fridge_Trader": { address: "0x25257a6a89dba93dd0c536b6279365632a4eb919", country: "Europe" },
+  "jagajpgptjq": { address: "0x802215d8c38066aef3f925c22999777c069f51f7", country: "Japan" },
+  "yonezyb": { address: "0x9c4db21669d5c5b48c0655761b4fedd646e6168c", country: "Ecuador" },
+  "kageyukii_": { address: "0xa8fa67aed008fd99268d60923032a914462277b5", country: "Hong Kong" },
+  "tejakasaragadda": { address: "0x3d0ede103718c48965174c42f45124256106da62", country: "United Arab Emirates" },
+  "aceofrare": { address: "0x5a4074a7e688892779cb0ca392f3508ac0764093", country: "Spain" },
+  "GohstPM": { address: "0x2d4bf8f846bf68f43b9157bf30810d334ac6ca7a", country: "Netherlands" },
+  "chenhao70918394": { address: "0xefb92699291627fbc395550648815b1241c3e74f", country: "United Kingdom" },
+  "two_gifts_": { address: "0xb1a279adb096d316b1b168993e8ed976d3cd372a", country: "Caribbean" },
+  "alesia_kod96360": { address: "0x3b91c0de58925787f14985328d94bd78ceb2e572", country: "Japan" },
 };
 
 // Helper to check if address belongs to X trader
