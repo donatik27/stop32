@@ -138,7 +138,7 @@ async function discoverAlphaMarkets() {
       logger.info(`   ✅ No duplicates found`);
     }
     
-    // STEP 1: Fetch TOP S/A/B tier traders from database
+    // STEP 1: Fetch TOP S/A/B tier traders from database (increased for better coverage!)
     logger.info('📥 STEP 1: Loading TOP S/A/B tier traders...');
     const allTraders = await prisma.trader.findMany({
       where: {
@@ -153,7 +153,7 @@ async function discoverAlphaMarkets() {
       orderBy: {
         realizedPnl: 'desc'
       },
-      take: 200 // LIMIT to TOP-200 traders to prevent crashes
+      take: 500 // INCREASED to 500 for better event coverage! (was 200)
     });
     
     logger.info(`   ✅ Loaded TOP-${allTraders.length} traders (S: ${allTraders.filter(t => t.tier === 'S').length}, A: ${allTraders.filter(t => t.tier === 'A').length}, B: ${allTraders.filter(t => t.tier === 'B').length})`);
@@ -207,7 +207,7 @@ async function discoverAlphaMarkets() {
       })
     });
     
-    // STEP 6: Analyze each market
+    // STEP 6: Analyze each market (detect if event or single market)
     logger.info(`🔬 STEP 6: Analyzing ${marketsToAnalyze.length} markets for trader positions...`);
     let savedCount = 0;
     let errorCount = 0;
@@ -218,9 +218,34 @@ async function discoverAlphaMarkets() {
       try {
         logger.info(`   [${i + 1}/${marketsToAnalyze.length}] ${market.question.slice(0, 50)}...`);
         
-        // Analyze market with timeout protection
+        // CHECK: Is this a multi-outcome EVENT?
+        if (market.negRiskMarketID) {
+          logger.info(`      🎯 EVENT DETECTED! Fetching all outcomes...`);
+          
+          // Fetch event data from Polymarket
+          const eventData = await fetchEventByConditionId(market.negRiskMarketID);
+          
+          if (eventData && eventData.markets && eventData.markets.length > 2) {
+            logger.info(`      📊 Found ${eventData.markets.length} outcomes in event`);
+            
+            // Analyze ALL outcomes in this event
+            const eventAnalysis = await analyzeEvent(client, eventData, allTraders as Trader[]);
+            
+            if (eventAnalysis.totalTraders >= 2) {
+              await saveEvent(eventData, eventAnalysis);
+              savedCount++;
+              logger.info(`      ✅ SAVED EVENT with ${eventAnalysis.totalTraders} traders across ${eventAnalysis.outcomesWithTraders} outcomes`);
+            } else {
+              logger.info(`      ⏭️  SKIPPED EVENT (only ${eventAnalysis.totalTraders} traders)`);
+            }
+            
+            continue; // Skip single market analysis for this
+          }
+        }
+        
+        // SINGLE YES/NO MARKET analysis
         const analysis = await Promise.race([
-          analyzeMarket(client, market, allTraders),
+          analyzeMarket(client, market, allTraders as Trader[]),
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Market analysis timeout')), 60000) // 60s timeout
           )
@@ -434,6 +459,167 @@ async function saveMarket(market: any, analysis: MarketAnalysis) {
       topSmartTraders: analysis.topTraders, // TOP-10 with full data
       isPinned: false, // No pinned system
       priority: 0,     // No priority needed
+      computedAt: new Date()
+    }
+  });
+}
+
+// ============================================================================
+// FETCH EVENT: Get event data from Polymarket API
+// ============================================================================
+
+async function fetchEventByConditionId(conditionId: string): Promise<any> {
+  try {
+    // Try fetching by condition_id
+    const eventRes = await fetch(`https://gamma-api.polymarket.com/events?id=${conditionId}`);
+    if (eventRes.ok) {
+      const events = await eventRes.json();
+      if (events && events[0]) {
+        return events[0];
+      }
+    }
+  } catch (error) {
+    logger.error(`Failed to fetch event for condition ${conditionId}`);
+  }
+  return null;
+}
+
+// ============================================================================
+// ANALYZE EVENT: Analyze all outcomes in multi-outcome event
+// ============================================================================
+
+interface EventAnalysis {
+  totalTraders: number;
+  outcomesWithTraders: number;
+  outcomes: Array<{
+    marketId: string;
+    question: string;
+    price: number;
+    traders: TraderPosition[];
+  }>;
+}
+
+async function analyzeEvent(
+  client: any,
+  eventData: any,
+  traders: Trader[]
+): Promise<EventAnalysis> {
+  
+  const outcomes = [];
+  let totalTradersSet = new Set<string>();
+  
+  // Analyze each outcome (market) in the event
+  for (const market of eventData.markets.slice(0, 15)) { // Limit to 15 outcomes
+    try {
+      const analysis = await analyzeMarket(client, market, traders);
+      
+      if (analysis.smartCount > 0) {
+        outcomes.push({
+          marketId: market.id,
+          question: market.question || market.groupItemTitle || 'Unknown',
+          price: market.outcomePrices ? parseFloat(market.outcomePrices[0]) : 0.5,
+          traders: analysis.topTraders
+        });
+        
+        // Track unique traders across all outcomes
+        analysis.topTraders.forEach(t => totalTradersSet.add(t.address));
+      }
+    } catch (error: any) {
+      logger.error(`   ⚠️  Failed to analyze outcome ${market.id}: ${error.message}`);
+    }
+  }
+  
+  return {
+    totalTraders: totalTradersSet.size,
+    outcomesWithTraders: outcomes.length,
+    outcomes
+  };
+}
+
+// ============================================================================
+// SAVE EVENT: Store event data as Alpha Market
+// ============================================================================
+
+async function saveEvent(eventData: any, analysis: EventAnalysis) {
+  
+  // Check if this event was recently analyzed
+  const recentAnalysis = await prisma.marketSmartStats.findFirst({
+    where: {
+      marketId: eventData.slug || eventData.markets[0].id,
+      computedAt: {
+        gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+      }
+    }
+  });
+  
+  if (recentAnalysis) {
+    const hoursAgo = Math.round((Date.now() - recentAnalysis.computedAt.getTime()) / 1000 / 60 / 60);
+    logger.info(`      ⏭️  Skipping save - event analyzed ${hoursAgo}h ago`);
+    return;
+  }
+  
+  // Use event slug as market ID (or first market ID as fallback)
+  const marketId = eventData.slug || eventData.markets[0].id;
+  
+  // Create/update Market record with event info
+  await prisma.market.upsert({
+    where: { id: marketId },
+    create: {
+      id: marketId,
+      question: eventData.title,
+      category: eventData.markets[0]?.category || 'Politics',
+      slug: eventData.slug,
+      eventSlug: eventData.slug,
+      endDate: eventData.endDate ? new Date(eventData.endDate) : null,
+      liquidity: parseFloat(eventData.liquidity || '0'),
+      volume: parseFloat(eventData.volume || '0'),
+      status: 'OPEN'
+    },
+    update: {
+      question: eventData.title,
+      eventSlug: eventData.slug,
+      endDate: eventData.endDate ? new Date(eventData.endDate) : null,
+      volume: parseFloat(eventData.volume || '0'),
+      status: 'OPEN'
+    }
+  });
+  
+  // Calculate aggregate metrics
+  const totalTraders = analysis.totalTraders;
+  const totalWeighted = analysis.outcomes.reduce((sum, o) => {
+    return sum + o.traders.reduce((tsum, t) => {
+      const tierWeight = t.tier === 'S' ? 5 : t.tier === 'A' ? 3 : 1;
+      return tsum + tierWeight;
+    }, 0);
+  }, 0);
+  const smartScore = totalWeighted * Math.log(1 + (parseFloat(eventData.volume || '0')) / 1000000);
+  
+  // Format outcomes for storage as JSON
+  const formattedOutcomes = analysis.outcomes.map(o => ({
+    marketId: o.marketId,
+    question: o.question,
+    price: o.price,
+    traders: o.traders.map(t => ({
+      address: t.address,
+      displayName: t.displayName,
+      tier: t.tier,
+      side: t.side,
+      shares: t.shares,
+      entryPrice: t.entryPrice
+    }))
+  }));
+  
+  // Create MarketSmartStats for event
+  await prisma.marketSmartStats.create({
+    data: {
+      marketId: marketId,
+      smartCount: totalTraders,
+      smartWeighted: totalWeighted,
+      smartShare: 0,
+      smartScore: smartScore,
+      topSmartTraders: formattedOutcomes as any, // Store ALL outcomes with traders as JSON!
+      isPinned: false,
+      priority: 0,
       computedAt: new Date()
     }
   });
