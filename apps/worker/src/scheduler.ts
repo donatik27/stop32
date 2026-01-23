@@ -15,8 +15,8 @@ export async function scheduleJobs() {
   // Clean up old repeatable jobs that are now disabled
   await removeRepeatables(queues.ingestion, ['sync-markets']);
   
-  // ✅ ALPHA MARKETS ENABLED - jobs will be scheduled below
-  // (previously removed here, but now they stay active)
+  // Clean up old PINNED system jobs (removed in new Alpha Markets worker)
+  await removeRepeatables(queues.smartMarkets, ['update-pinned-markets', 'refresh-pinned-selection']);
 
   // Sync leaderboard every 5 minutes
   await queues.ingestion.add(
@@ -55,9 +55,9 @@ export async function scheduleJobs() {
   );
   logger.info('Scheduled: calculate-rarity-scores (every 30 minutes)');
 
-  // === SMART MARKETS JOBS ===
+  // === ALPHA MARKETS JOBS (NO PINNED SYSTEM) ===
   
-  // Discover new smart markets every 30 minutes
+  // Discover alpha markets every 30 minutes
   await queues.smartMarkets.add(
     'discover-new-markets',
     { type: 'discover-new-markets' },
@@ -68,30 +68,6 @@ export async function scheduleJobs() {
     }
   );
   logger.info('Scheduled: discover-new-markets (every 30 minutes)');
-
-  // Update pinned markets every 24 hours
-  await queues.smartMarkets.add(
-    'update-pinned-markets',
-    { type: 'update-pinned-markets' },
-    {
-      repeat: {
-        pattern: '0 */24 * * *', // Every 24 hours
-      },
-    }
-  );
-  logger.info('Scheduled: update-pinned-markets (every 24 hours)');
-
-  // Refresh pinned selection every 6 hours
-  await queues.smartMarkets.add(
-    'refresh-pinned-selection',
-    { type: 'refresh-pinned-selection' },
-    {
-      repeat: {
-        pattern: '0 */6 * * *', // Every 6 hours
-      },
-    }
-  );
-  logger.info('Scheduled: refresh-pinned-selection (every 6 hours)');
 
   // Analyze multi-outcome events every hour
   await queues.smartMarkets.add(
